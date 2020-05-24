@@ -96,6 +96,24 @@ return /******/ (function(modules) { // webpackBootstrap
 /************************************************************************/
 /******/ ({
 
+/***/ "034f":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_6_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_App_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("85ec");
+/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_6_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_App_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_mini_css_extract_plugin_dist_loader_js_ref_6_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_App_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__);
+/* unused harmony reexport * */
+ /* unused harmony default export */ var _unused_webpack_default_export = (_node_modules_mini_css_extract_plugin_dist_loader_js_ref_6_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_App_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default.a); 
+
+/***/ }),
+
+/***/ "85ec":
+/***/ (function(module, exports, __webpack_require__) {
+
+// extracted by mini-css-extract-plugin
+
+/***/ }),
+
 /***/ "8875":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -205,12 +223,12 @@ if (typeof window !== 'undefined') {
 // Indicate to webpack that this file can be concatenated
 /* harmony default export */ var setPublicPath = (null);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"46d6b4f7-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=template&id=69b8f189&
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_vm._v(" Browser base64 Session Description "),_c('br'),_c('textarea',{attrs:{"readonly":"true"},domProps:{"value":_vm.localDescription}}),_c('br'),_vm._v("Golang base64 Session Description "),_c('br'),_c('textarea',{domProps:{"value":_vm.remoteSessionDescription}}),_c('br'),_c('button',{on:{"click":_vm.startSession}},[_vm._v("Start Session")]),_c('br'),_c('br'),_vm._v("Video "),_c('br'),_c('video',{attrs:{"id":"video1","width":"160","height":"120","autoplay":"","muted":""},domProps:{"muted":true}}),_c('br'),_vm._v("Logs "),_c('br'),_c('div',{attrs:{"id":"logs"}})])}
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"7d106341-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=template&id=cb3c076e&
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"root"},[_vm._v(" Browser SDP "),_c('br'),_c('textarea',{attrs:{"readonly":"true","rows":"10","cols":"100"}},[_vm._v(_vm._s(_vm.localSDP||"loading..."))]),_c('br'),_vm._v("Golang SDP "),_c('br'),_c('textarea',{attrs:{"rows":"10","cols":"100"}},[_vm._v(_vm._s(_vm.remoteSDP))]),_c('br'),_c('mu-text-field',{attrs:{"label":"streamPath"},model:{value:(_vm.streamPath),callback:function ($$v) {_vm.streamPath=$$v},expression:"streamPath"}}),(_vm.localSDP)?_c('m-button',{on:{"click":_vm.startSession}},[_vm._v("Start")]):_vm._e(),_c('br'),_c('br'),_vm._v("Video "),_c('br'),_c('video',{attrs:{"id":"video1","width":"160","height":"120","autoplay":"","muted":""},domProps:{"muted":true}}),_c('br'),_vm._v("Logs "),_c('br'),_c('div',{attrs:{"id":"logs"}})],1)}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/App.vue?vue&type=template&id=69b8f189&
+// CONCATENATED MODULE: ./src/App.vue?vue&type=template&id=cb3c076e&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=script&lang=js&
 //
@@ -234,25 +252,47 @@ var staticRenderFns = []
 //
 //
 //
+//
 
 let pc = new RTCPeerConnection({
-  iceServers: [
+  iceServers:[
     {
-      urls: "stun:stun.l.google.com:19302"
+      urls:[
+	"stun:stun.ekiga.net",
+	"stun:stun.ideasip.com",
+	"stun:stun.schlund.de",
+	"stun:stun.stunprotocol.org:3478",
+	"stun:stun.voiparound.com",
+	"stun:stun.voipbuster.com",
+	"stun:stun.voipstunt.com",
+	"stun:stun.voxgratia.org",
+	"stun:stun.services.mozilla.com",
+	"stun:stun.xten.com",
+	"stun:stun.softjoys.com",
+	"stun:stunserver.org",
+	"stun:stun.schlund.de",
+	"stun:stun.rixtelecom.se",
+	"stun:stun.iptel.org",
+	"stun:stun.ideasip.com",
+	"stun:stun.fwdnet.net",
+	"stun:stun.ekiga.net",
+	"stun:stun01.sipphone.com",
+      ]
     }
   ]
 });
 /* harmony default export */ var Appvue_type_script_lang_js_ = ({
   data() {
     return {
-      localDescription: "",
-      remoteSessionDescription: ""
+      localSDP: "",
+      remoteSDP: "",
+      streamPath:"live/rtc"
     };
   },
   methods: {
     startSession() {
-      this.ajax.post("/webrtc/answer", this.localDescription).then(result => {
-        this.remoteSessionDescription = result;
+      this.ajax({type: 'POST',processData:false,data: JSON.stringify(pc.localDescription),url:"/webrtc/answer?streamPath="+this.streamPath,dataType:"json"}).then(result => {
+        this.remoteSDP = result.sdp;
         pc.setRemoteDescription(new RTCSessionDescription(result));
       });
     }
@@ -276,7 +316,7 @@ let pc = new RTCPeerConnection({
     pc.oniceconnectionstatechange = e => log(pc.iceConnectionState);
     pc.onicecandidate = event => {
       if (event.candidate === null) {
-        this.localDescription = JSON.stringify(pc.localDescription);
+        this.localSDP = pc.localDescription.sdp;
       }
     };
   }
@@ -284,6 +324,9 @@ let pc = new RTCPeerConnection({
 
 // CONCATENATED MODULE: ./src/App.vue?vue&type=script&lang=js&
  /* harmony default export */ var src_Appvue_type_script_lang_js_ = (Appvue_type_script_lang_js_); 
+// EXTERNAL MODULE: ./src/App.vue?vue&type=style&index=0&lang=css&
+var Appvue_type_style_index_0_lang_css_ = __webpack_require__("034f");
+
 // CONCATENATED MODULE: ./node_modules/vue-loader/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
 
@@ -385,6 +428,7 @@ function normalizeComponent (
 }
 
 // CONCATENATED MODULE: ./src/App.vue
+
 
 
 
