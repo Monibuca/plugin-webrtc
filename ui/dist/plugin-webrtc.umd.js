@@ -96,21 +96,21 @@ return /******/ (function(modules) { // webpackBootstrap
 /************************************************************************/
 /******/ ({
 
-/***/ "034f":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_6_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_App_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("85ec");
-/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_6_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_App_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_mini_css_extract_plugin_dist_loader_js_ref_6_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_App_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__);
-/* unused harmony reexport * */
- /* unused harmony default export */ var _unused_webpack_default_export = (_node_modules_mini_css_extract_plugin_dist_loader_js_ref_6_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_App_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default.a); 
-
-/***/ }),
-
-/***/ "85ec":
+/***/ "40b7":
 /***/ (function(module, exports, __webpack_require__) {
 
 // extracted by mini-css-extract-plugin
+
+/***/ }),
+
+/***/ "5776":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_6_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_App_vue_vue_type_style_index_0_id_42a5fa69_scoped_true_lang_css___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("40b7");
+/* harmony import */ var _node_modules_mini_css_extract_plugin_dist_loader_js_ref_6_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_App_vue_vue_type_style_index_0_id_42a5fa69_scoped_true_lang_css___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_mini_css_extract_plugin_dist_loader_js_ref_6_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_App_vue_vue_type_style_index_0_id_42a5fa69_scoped_true_lang_css___WEBPACK_IMPORTED_MODULE_0__);
+/* unused harmony reexport * */
+ /* unused harmony default export */ var _unused_webpack_default_export = (_node_modules_mini_css_extract_plugin_dist_loader_js_ref_6_oneOf_1_0_node_modules_css_loader_dist_cjs_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_src_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_App_vue_vue_type_style_index_0_id_42a5fa69_scoped_true_lang_css___WEBPACK_IMPORTED_MODULE_0___default.a); 
 
 /***/ }),
 
@@ -223,12 +223,12 @@ if (typeof window !== 'undefined') {
 // Indicate to webpack that this file can be concatenated
 /* harmony default export */ var setPublicPath = (null);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"7d106341-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=template&id=cb3c076e&
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"root"},[_vm._v(" Browser SDP "),_c('br'),_c('textarea',{attrs:{"readonly":"true","rows":"10","cols":"100"}},[_vm._v(_vm._s(_vm.localSDP||"loading..."))]),_c('br'),_vm._v("Golang SDP "),_c('br'),_c('textarea',{attrs:{"rows":"10","cols":"100"}},[_vm._v(_vm._s(_vm.remoteSDP))]),_c('br'),_c('mu-text-field',{attrs:{"label":"streamPath"},model:{value:(_vm.streamPath),callback:function ($$v) {_vm.streamPath=$$v},expression:"streamPath"}}),(_vm.localSDP)?_c('m-button',{on:{"click":_vm.startSession}},[_vm._v("Start")]):_vm._e(),_c('br'),_c('br'),_vm._v("Video "),_c('br'),_c('video',{attrs:{"id":"video1","width":"160","height":"120","autoplay":"","muted":""},domProps:{"muted":true}}),_c('br'),_vm._v("Logs "),_c('br'),_c('div',{attrs:{"id":"logs"}})],1)}
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"7d106341-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=template&id=42a5fa69&scoped=true&
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[(_vm.$parent.titleTabActive == 1)?_c('pre',[_vm._v(_vm._s(_vm.localSDP))]):(_vm.$parent.titleTabActive == 2)?_c('pre',[_vm._v(_vm._s(_vm.remoteSDP))]):_c('div',[_c('mu-text-field',{attrs:{"label":"streamPath"},model:{value:(_vm.streamPath),callback:function ($$v) {_vm.streamPath=$$v},expression:"streamPath"}}),(!_vm.localSDP || _vm.ask)?_c('span',{staticClass:"blink"},[_vm._v("Connecting")]):(_vm.iceConnectionState!='connected')?_c('m-button',{on:{"click":_vm.startSession}},[_vm._v("Start")]):(_vm.iceConnectionState=='connected')?_c('m-button',{on:{"click":_vm.stopSession}},[_vm._v("Stop")]):_vm._e(),_c('br'),_c('video',{ref:"video1",attrs:{"width":"640","height":"480","autoplay":"","muted":""},domProps:{"srcObject":_vm.stream,"muted":true}})],1)])}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/App.vue?vue&type=template&id=cb3c076e&
+// CONCATENATED MODULE: ./src/App.vue?vue&type=template&id=42a5fa69&scoped=true&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=script&lang=js&
 //
@@ -246,86 +246,107 @@ var staticRenderFns = []
 //
 //
 //
-//
-//
-//
-//
-//
-//
-//
 
-let pc = new RTCPeerConnection({
+const config = {
   iceServers:[
     {
       urls:[
-	"stun:stun.ekiga.net",
-	"stun:stun.ideasip.com",
-	"stun:stun.schlund.de",
-	"stun:stun.stunprotocol.org:3478",
-	"stun:stun.voiparound.com",
-	"stun:stun.voipbuster.com",
-	"stun:stun.voipstunt.com",
-	"stun:stun.voxgratia.org",
-	"stun:stun.services.mozilla.com",
-	"stun:stun.xten.com",
-	"stun:stun.softjoys.com",
-	"stun:stunserver.org",
-	"stun:stun.schlund.de",
-	"stun:stun.rixtelecom.se",
-	"stun:stun.iptel.org",
-	"stun:stun.ideasip.com",
-	"stun:stun.fwdnet.net",
-	"stun:stun.ekiga.net",
-	"stun:stun01.sipphone.com",
+        "stun:stun.ekiga.net",
+        "stun:stun.ideasip.com",
+        "stun:stun.schlund.de",
+        "stun:stun.stunprotocol.org:3478",
+        "stun:stun.voiparound.com",
+        "stun:stun.voipbuster.com",
+        "stun:stun.voipstunt.com",
+        "stun:stun.voxgratia.org",
+        "stun:stun.services.mozilla.com",
+        "stun:stun.xten.com",
+        "stun:stun.softjoys.com",
+        "stun:stunserver.org",
+        "stun:stun.schlund.de",
+        "stun:stun.rixtelecom.se",
+        "stun:stun.iptel.org",
+        "stun:stun.ideasip.com",
+        "stun:stun.fwdnet.net",
+        "stun:stun.ekiga.net",
+        "stun:stun01.sipphone.com",
       ]
     }
   ]
-});
+}
+let pc = new RTCPeerConnection(config);
+var stream = null
+var streamPath = "live/rtc"
 /* harmony default export */ var Appvue_type_script_lang_js_ = ({
   data() {
     return {
-      localSDP: "",
-      remoteSDP: "",
-      streamPath:"live/rtc"
+      localSDP: pc&&pc.localDescription&&pc.localDescription.sdp,
+      remoteSDP: pc&&pc.remoteDescription&&pc.remoteDescription.sdp,
+      streamPath,
+      iceConnectionState:pc&&pc.iceConnectionState,
+      stream,
+      ask:false
     };
   },
   methods: {
     startSession() {
+      this.ask = true
       this.ajax({type: 'POST',processData:false,data: JSON.stringify(pc.localDescription),url:"/webrtc/answer?streamPath="+this.streamPath,dataType:"json"}).then(result => {
-        this.remoteSDP = result.sdp;
-        pc.setRemoteDescription(new RTCSessionDescription(result));
+        this.ask = false
+        if (result.errmsg){
+          this.$toast.error(result.errmsg)
+        }else{
+          streamPath = this.streamPath
+          this.remoteSDP = result.sdp;
+          this.$parent.titleTabs = ["摄像头", "localSDP","remoteSDP"];
+          pc.setRemoteDescription(new RTCSessionDescription(result));
+        }
       });
+    },
+    stopSession(){
+      pc.close()
+      pc = new RTCPeerConnection(config)
+      this.remoteSDP = ""
+      this.localSDP = ""
+      this.connectICE().catch(err=> this.$toast.error(err.message))
+    },
+    async connectICE(){
+      pc.addStream(stream);
+      await pc.setLocalDescription(await pc.createOffer())
+      pc.oniceconnectionstatechange = e => {
+        this.$toast.info(pc.iceConnectionState)
+        this.iceConnectionState = pc.iceConnectionState
+      };
+      pc.onicecandidate = event => {
+        if (event.candidate === null) {
+          this.localSDP = pc.localDescription.sdp;
+          this.$parent.titleTabs = ["摄像头", "localSDP"];
+        }
+      };
     }
   },
-  mounted() {
-    /* eslint-env browser */
-    var log = msg => {
-      document.getElementById("logs").innerHTML += msg + "<br>";
-    };
-
-    navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
-      .then(stream => {
-        pc.addStream((document.getElementById("video1").srcObject = stream));
-        pc.createOffer()
-          .then(d => pc.setLocalDescription(d))
-          .catch(log);
-      })
-      .catch(log);
-
-    pc.oniceconnectionstatechange = e => log(pc.iceConnectionState);
-    pc.onicecandidate = event => {
-      if (event.candidate === null) {
-        this.localSDP = pc.localDescription.sdp;
+  async mounted() {
+    if (this.localSDP){
+      let tabs = ["摄像头"]
+      if(this.localSDP)tabs.push("localSDP")
+      if(this.remoteSDP)tabs.push("remoteSDP")
+      this.$parent.titleTabs = tabs;
+    } else {
+      try{
+        if(!this.stream)
+          this.stream = stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        await this.connectICE()
+      }catch(err){
+        this.$toast.error(err.message)
       }
-    };
+    }
   }
 });
 
 // CONCATENATED MODULE: ./src/App.vue?vue&type=script&lang=js&
  /* harmony default export */ var src_Appvue_type_script_lang_js_ = (Appvue_type_script_lang_js_); 
-// EXTERNAL MODULE: ./src/App.vue?vue&type=style&index=0&lang=css&
-var Appvue_type_style_index_0_lang_css_ = __webpack_require__("034f");
+// EXTERNAL MODULE: ./src/App.vue?vue&type=style&index=0&id=42a5fa69&scoped=true&lang=css&
+var Appvue_type_style_index_0_id_42a5fa69_scoped_true_lang_css_ = __webpack_require__("5776");
 
 // CONCATENATED MODULE: ./node_modules/vue-loader/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
@@ -442,7 +463,7 @@ var component = normalizeComponent(
   staticRenderFns,
   false,
   null,
-  null,
+  "42a5fa69",
   null
   
 )

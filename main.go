@@ -8,7 +8,7 @@ import (
 	"time"
 
 	. "github.com/Monibuca/engine/v2"
-	rtsp "github.com/Monibuca/plugin-rtsp"
+	. "github.com/Monibuca/plugin-rtp"
 	"github.com/pion/rtcp"
 	. "github.com/pion/webrtc/v2"
 )
@@ -42,7 +42,7 @@ var config = &struct {
 // 	port int
 // }
 
-var m = MediaEngine{}
+var m MediaEngine
 var api *API
 
 func init() {
@@ -58,7 +58,7 @@ func init() {
 }
 
 type WebRTC struct {
-	rtsp.RTSP
+	RTP
 	*PeerConnection
 }
 
@@ -80,21 +80,17 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 		return false
 	}
 	peerConnection.OnICEConnectionStateChange(func(connectionState ICEConnectionState) {
-		fmt.Printf("Connection State has changed %s \n", connectionState.String())
-
-		if connectionState == ICEConnectionStateConnected {
-			fmt.Println("Ctrl+C the remote client to stop the demo")
-		} else if connectionState == ICEConnectionStateFailed ||
-			connectionState == ICEConnectionStateDisconnected {
-			fmt.Println("Done forwarding")
-			//TODO
+		Printf("%s Connection State has changed %s ", streamPath, connectionState.String())
+		switch connectionState {
+		case ICEConnectionStateDisconnected:
+			rtc.Stream.Close()
 		}
 	})
 	rtc.PeerConnection = peerConnection
-	if rtc.RTSP.Publish(streamPath) {
+	if rtc.RTP.Publish(streamPath) {
 		rtc.Stream.Type = "WebRTC"
 		peerConnection.OnTrack(func(track *Track, receiver *RTPReceiver) {
-			defer rtc.Close()
+			defer rtc.Stream.Close()
 			go func() {
 				ticker := time.NewTicker(time.Second * 2)
 				select {
@@ -106,10 +102,10 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 					return
 				}
 			}()
-			pack := &rtsp.RTPPack{
-				Type: rtsp.RTPType(track.Kind() - 1),
+			pack := &RTPPack{
+				Type: RTPType(track.Kind() - 1),
 			}
-			for b := make([]byte, 1460); ; rtc.HandleRTP(pack) {
+			for b := make([]byte, 1460); ; rtc.PushPack(pack) {
 				i, err := track.Read(b)
 				if err != nil {
 					return
@@ -159,6 +155,8 @@ func run() {
 				return
 			}
 			w.Write(bytes)
+		} else {
+			w.Write([]byte(`{"errmsg":"bad name"}`))
 		}
 	})
 }
