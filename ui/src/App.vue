@@ -5,7 +5,10 @@
     <div v-else>
       <mu-text-field v-model="streamPath" label="streamPath"></mu-text-field>
       <span class="blink" v-if="!localSDP || ask">Connecting</span>
-      <m-button @click="startSession" v-else-if="iceConnectionState!='connected'">Start</m-button>
+      <template v-else-if="iceConnectionState!='connected'">
+        <m-button @click="startSession('publish')">Publish</m-button>
+        <m-button @click="startSession('play')">Play</m-button>
+      </template>
       <m-button @click="stopSession" v-else-if="iceConnectionState=='connected'">Stop</m-button>
       <br />
       <video ref="video1" :srcObject.prop="stream" width="640" height="480" autoplay muted></video>
@@ -16,29 +19,29 @@
 <script>
 const config = {
   iceServers:[
-    {
-      urls:[
-        "stun:stun.ekiga.net",
-        "stun:stun.ideasip.com",
-        "stun:stun.schlund.de",
-        "stun:stun.stunprotocol.org:3478",
-        "stun:stun.voiparound.com",
-        "stun:stun.voipbuster.com",
-        "stun:stun.voipstunt.com",
-        "stun:stun.voxgratia.org",
-        "stun:stun.services.mozilla.com",
-        "stun:stun.xten.com",
-        "stun:stun.softjoys.com",
-        "stun:stunserver.org",
-        "stun:stun.schlund.de",
-        "stun:stun.rixtelecom.se",
-        "stun:stun.iptel.org",
-        "stun:stun.ideasip.com",
-        "stun:stun.fwdnet.net",
-        "stun:stun.ekiga.net",
-        "stun:stun01.sipphone.com",
-      ]
-    }
+    // {
+    //   urls:[
+    //     "stun:stun.ekiga.net",
+    //     "stun:stun.ideasip.com",
+    //     "stun:stun.schlund.de",
+    //     "stun:stun.stunprotocol.org:3478",
+    //     "stun:stun.voiparound.com",
+    //     "stun:stun.voipbuster.com",
+    //     "stun:stun.voipstunt.com",
+    //     "stun:stun.voxgratia.org",
+    //     "stun:stun.services.mozilla.com",
+    //     "stun:stun.xten.com",
+    //     "stun:stun.softjoys.com",
+    //     "stun:stunserver.org",
+    //     "stun:stun.schlund.de",
+    //     "stun:stun.rixtelecom.se",
+    //     "stun:stun.iptel.org",
+    //     "stun:stun.ideasip.com",
+    //     "stun:stun.fwdnet.net",
+    //     "stun:stun.ekiga.net",
+    //     "stun:stun01.sipphone.com",
+    //   ]
+    // }
   ]
 }
 let pc = new RTCPeerConnection(config);
@@ -52,13 +55,15 @@ export default {
       streamPath,
       iceConnectionState:pc&&pc.iceConnectionState,
       stream,
+      type:"",
       ask:false
     };
   },
   methods: {
-    startSession() {
+    startSession(type) {
+      this.type = type
       this.ask = true
-      this.ajax({type: 'POST',processData:false,data: JSON.stringify(pc.localDescription),url:"/webrtc/answer?streamPath="+this.streamPath,dataType:"json"}).then(result => {
+      this.ajax({type: 'POST',processData:false,data: JSON.stringify(pc.localDescription),url:"/webrtc/"+type+"?streamPath="+this.streamPath,dataType:"json"}).then(result => {
         this.ask = false
         if (result.errmsg){
           this.$toast.error(result.errmsg)
@@ -90,6 +95,11 @@ export default {
           this.$parent.titleTabs = ["摄像头", "localSDP"];
         }
       };
+      pc.ontrack = event=>{
+        if(this.type=="play" && event.streams[0]){
+          this.stream = stream = event.streams[0]
+        }
+      }
     }
   },
   async mounted() {
