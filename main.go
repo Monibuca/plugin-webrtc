@@ -111,118 +111,123 @@ func (rtc *WebRTC) Play(streamPath string) bool {
 		Println(err)
 		return false
 	}
-	peerConnection.OnICEConnectionStateChange(func(connectionState ICEConnectionState) {
-		Printf("%s Connection State has changed %s ", streamPath, connectionState.String())
-		switch connectionState {
-		case ICEConnectionStateDisconnected:
-			if rtc.Stream != nil {
-				rtc.Stream.Close()
-			}
-		case ICEConnectionStateConnected:
-			var sequence uint16
-			var sub Subscriber
-			sub.ID = rtc.RemoteAddr
-			sub.Type = "WebRTC"
-			nextHeader := func(ts uint32, marker bool) rtp.Header {
-				sequence++
-				return rtp.Header{
-					Version:        2,
-					SSRC:           ssrc,
-					PayloadType:    DefaultPayloadTypeH264,
-					SequenceNumber: sequence,
-					Timestamp:      ts,
-					Marker:         marker,
-				}
-			}
-			stapA := func(naul ...[]byte) []byte {
-				var buffer bytes.Buffer
-				buffer.WriteByte(24)
-				for _, n := range naul {
-					l := len(n)
-					buffer.WriteByte(byte(l >> 8))
-					buffer.WriteByte(byte(l))
-					buffer.Write(n)
-				}
-				return buffer.Bytes()
-			}
+	var sequence uint16
+	var sub Subscriber
+	var sps []byte
+	var pps []byte
+	sub.ID = rtc.RemoteAddr
+	sub.Type = "WebRTC"
+	nextHeader := func(ts uint32, marker bool) rtp.Header {
+		sequence++
+		return rtp.Header{
+			Version:        2,
+			SSRC:           ssrc,
+			PayloadType:    DefaultPayloadTypeH264,
+			SequenceNumber: sequence,
+			Timestamp:      ts,
+			Marker:         marker,
+		}
+	}
+	stapA := func(naul ...[]byte) []byte {
+		var buffer bytes.Buffer
+		buffer.WriteByte(24)
+		for _, n := range naul {
+			l := len(n)
+			buffer.WriteByte(byte(l >> 8))
+			buffer.WriteByte(byte(l))
+			buffer.Write(n)
+		}
+		return buffer.Bytes()
+	}
 
-			// aud := []byte{0x09, 0x30}
-			sub.OnData = func(packet *avformat.SendPacket) error {
-				if packet.Type == avformat.FLV_TAG_TYPE_AUDIO {
-					return nil
+	// aud := []byte{0x09, 0x30}
+	sub.OnData = func(packet *avformat.SendPacket) error {
+		if packet.Type == avformat.FLV_TAG_TYPE_AUDIO {
+			return nil
+		}
+		if packet.IsSequence {
+			payload := packet.Payload[11:]
+			spsLen := int(payload[0])<<8 + int(payload[1])
+			sps = payload[2:spsLen]
+			payload = payload[3+spsLen:]
+			ppsLen := int(payload[0])<<8 + int(payload[1])
+			pps = payload[2:ppsLen]
+		} else {
+			if packet.IsKeyFrame {
+				if err := videoTrack.WriteRTP(&rtp.Packet{
+					Header:  nextHeader(0, true),
+					Payload: stapA(sps, pps),
+				}); err != nil {
+					return err
 				}
-				if packet.IsSequence {
-					payload := packet.Payload[11:]
-					spsLen := int(payload[0])<<8 + int(payload[1])
-					sps := payload[2:spsLen]
-					payload = payload[3+spsLen:]
-					ppsLen := int(payload[0])<<8 + int(payload[1])
-					pps := payload[2:ppsLen]
+			}
+			payload := packet.Payload[5:]
+			for {
+				var naulLen = int(util.BigEndian.Uint32(payload))
+				payload = payload[4:]
+				_payload := payload[:naulLen]
+				if naulLen > 1000 {
+					part := _payload[:1000]
+					indicator := ((part[0] >> 5) << 5) | 28
+					nalutype := part[0] & 31
+					header := 128 | nalutype
+					part = part[1:]
+					marker := false
+					for {
+						if err := videoTrack.WriteRTP(&rtp.Packet{
+							Header:  nextHeader(packet.Timestamp*90, marker),
+							Payload: append([]byte{indicator, header}, part...),
+						}); err != nil {
+							return err
+						}
+						if _payload == nil {
+							break
+						}
+						if len(_payload[1000:]) <= 1000 {
+							header = 64 | nalutype
+							part = _payload[1000:]
+							_payload = nil
+							marker = true
+						} else {
+							header = nalutype
+							part = _payload[1000:]
+							_payload = part
+						}
+					}
+				} else {
 					if err := videoTrack.WriteRTP(&rtp.Packet{
-						Header:  nextHeader(0, false),
-						Payload: stapA(sps, pps),
+						Header:  nextHeader(packet.Timestamp*90, true),
+						Payload: _payload,
 					}); err != nil {
 						return err
 					}
-				} else {
-					payload := packet.Payload[5:]
-					for {
-						var naulLen = int(util.BigEndian.Uint32(payload))
-						payload = payload[4:]
-						_payload := payload[:naulLen]
-						if naulLen > 1000 {
-							part := _payload[:1000]
-							indicator := ((part[0] >> 5) << 5) | 28
-							nalutype := part[0] & 31
-							header := 128 | nalutype
-							part = part[1:]
-							marker := false
-							for {
-								if err := videoTrack.WriteRTP(&rtp.Packet{
-									Header:  nextHeader(packet.Timestamp*90, marker),
-									Payload: append([]byte{indicator, header}, part...),
-								}); err != nil {
-									return err
-								}
-								marker = true
-								if _payload == nil {
-									break
-								}
-								if len(_payload[1000:]) <= 1000 {
-									header = 64 | nalutype
-									part = _payload[1000:]
-									_payload = nil
-								} else {
-									header = nalutype
-									part = _payload[1000:]
-									_payload = part
-								}
-							}
-						} else {
-							if err := videoTrack.WriteRTP(&rtp.Packet{
-								Header:  nextHeader(packet.Timestamp*90, false),
-								Payload: _payload,
-							}); err != nil {
-								return err
-							}
-						}
-						if len(payload) < naulLen+4 {
-							break
-						}
-						payload = payload[naulLen:]
-					}
-					// if err := videoTrack.WriteRTP(&rtp.Packet{
-					// 	Header:  nextHeader(packet.Timestamp * 90),
-					// 	Payload: aud,
-					// }); err != nil {
-					// 	return err
-					// }
 				}
-				return nil
+				if len(payload) < naulLen+4 {
+					break
+				}
+				payload = payload[naulLen:]
 			}
-			sub.Subscribe(streamPath)
+			// if err := videoTrack.WriteRTP(&rtp.Packet{
+			// 	Header:  nextHeader(packet.Timestamp * 90),
+			// 	Payload: aud,
+			// }); err != nil {
+			// 	return err
+			// }
 		}
-	})
+		return nil
+	}
+	go sub.Subscribe(streamPath)
+	// peerConnection.OnICEConnectionStateChange(func(connectionState ICEConnectionState) {
+	// 	Printf("%s Connection State has changed %s ", streamPath, connectionState.String())
+	// 	switch connectionState {
+	// 	case ICEConnectionStateDisconnected:
+	// 		if rtc.Stream != nil {
+	// 			rtc.Stream.Close()
+	// 		}
+	// 	case ICEConnectionStateConnected:
+
+	// 	}
+	// })
 	return true
 }
 func (rtc *WebRTC) Publish(streamPath string) bool {
@@ -289,24 +294,13 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 	}
 	return true
 }
-func (rtc *WebRTC) GetAnswer(offer SessionDescription) ([]byte, error) {
-	if err := rtc.SetRemoteDescription(offer); err != nil {
-		Println(err)
-		return nil, err
-	}
-	// Create answer
-	answer, err := rtc.CreateAnswer(nil)
-	if err != nil {
-		Println(err)
-		return nil, err
-	}
-
+func (rtc *WebRTC) GetAnswer(localSdp SessionDescription) ([]byte, error) {
 	// Sets the LocalDescription, and starts our UDP listeners
-	if err = rtc.SetLocalDescription(answer); err != nil {
+	if err := rtc.SetLocalDescription(localSdp); err != nil {
 		Println(err)
 		return nil, err
 	}
-	if bytes, err := json.Marshal(answer); err != nil {
+	if bytes, err := json.Marshal(localSdp); err != nil {
 		Println(err)
 		return bytes, err
 	} else {
@@ -316,17 +310,22 @@ func (rtc *WebRTC) GetAnswer(offer SessionDescription) ([]byte, error) {
 func run() {
 	http.HandleFunc("/webrtc/play", func(w http.ResponseWriter, r *http.Request) {
 		streamPath := r.URL.Query().Get("streamPath")
-		offer := SessionDescription{}
-		bytes, err := ioutil.ReadAll(r.Body)
-		err = json.Unmarshal(bytes, &offer)
-		if err != nil {
-			Println(err)
-			return
-		}
+		// offer := SessionDescription{}
+		// bytes, err := ioutil.ReadAll(r.Body)
+		// err = json.Unmarshal(bytes, &offer)
+		// if err != nil {
+		// 	Println(err)
+		// 	return
+		// }
 		rtc := new(WebRTC)
 		rtc.RemoteAddr = r.RemoteAddr
 		if rtc.Play(streamPath) {
-			if bytes, err = rtc.GetAnswer(offer); err == nil {
+			offer, err := rtc.CreateOffer(nil)
+			if err != nil {
+				Println(err)
+				return
+			}
+			if bytes, err := rtc.GetAnswer(offer); err == nil {
 				w.Write(bytes)
 			} else {
 				Println(err)
@@ -349,7 +348,16 @@ func run() {
 		rtc := new(WebRTC)
 		rtc.RemoteAddr = r.RemoteAddr
 		if rtc.Publish(streamPath) {
-			if bytes, err = rtc.GetAnswer(offer); err == nil {
+			if err := rtc.SetRemoteDescription(offer); err != nil {
+				Println(err)
+				return
+			}
+			answer, err := rtc.CreateAnswer(nil)
+			if err != nil {
+				Println(err)
+				return
+			}
+			if bytes, err = rtc.GetAnswer(answer); err == nil {
 				w.Write(bytes)
 			} else {
 				Println(err)
