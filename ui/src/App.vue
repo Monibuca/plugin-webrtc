@@ -63,6 +63,33 @@ export default {
         async startSession(type) {
             this.type = type;
             this.ask = true;
+            if (type == "play") {
+                const result = await this.ajax({
+                    url: "/webrtc/preparePlay?streamPath=" + this.streamPath,
+                    dataType: "json"
+                });
+                if (result.errmsg) {
+                    this.$toast.error(result.errmsg);
+                    return;
+                } else {
+                    streamPath = this.streamPath;
+                    this.remoteSDP = result.sdp;
+                }
+                pc.ontrack = event => {
+                     console.log(event)
+                    if (event.streams[0].id == "monibuca")
+                        this.stream = stream = event.streams[0];
+                };
+                await pc.setRemoteDescription(
+                    new RTCSessionDescription(result)
+                );
+                await pc.setLocalDescription(await pc.createAnswer());
+                this.localSDP = pc.localDescription.sdp;
+            } else {
+                pc.addStream(stream);
+                await pc.setLocalDescription(await pc.createOffer());
+                this.localSDP = pc.localDescription.sdp;
+            }
             const result = await this.ajax({
                 type: "POST",
                 processData: false,
@@ -71,24 +98,17 @@ export default {
                 dataType: "json"
             });
             this.ask = false;
-            if (result.errmsg) {
-                this.$toast.error(result.errmsg);
+            if (result!="success") {
+                this.$toast.error(result.errmsg||result);
+                return;
             } else {
                 streamPath = this.streamPath;
-                this.remoteSDP = result.sdp;
-                this.$parent.titleTabs = ["摄像头", "localSDP", "remoteSDP"];
-                pc.setRemoteDescription(new RTCSessionDescription(result));
             }
-            if (type == "publish") {
-                pc.addStream(stream);
-                this.localSDP = (
-                    await pc.setLocalDescription(await pc.createOffer())
-                ).sdp;
+            if (type == "play") {
+               
             } else {
-                pc.ontrack = event => {
-                  if(event.streams[0].id=="monibuca")
-                    this.stream = stream = event.streams[0];
-                };
+                this.remoteSDP = result.sdp;
+                pc.setRemoteDescription(new RTCSessionDescription(result));
             }
         },
         stopSession() {
@@ -108,25 +128,15 @@ export default {
             this.$toast.info(pc.iceConnectionState);
             this.iceConnectionState = pc.iceConnectionState;
         };
-        pc.onicecandidate = event => {
-            if (event.candidate === null) {
-                this.$parent.titleTabs = ["摄像头", "localSDP"];
-            }
-        };
-        if (this.localSDP) {
-            let tabs = ["摄像头"];
-            if (this.localSDP) tabs.push("localSDP");
-            if (this.remoteSDP) tabs.push("remoteSDP");
-            this.$parent.titleTabs = tabs;
-        } else {
-            try {
-                if (!this.stream)
-                    this.stream = stream = await navigator.mediaDevices.getUserMedia(
-                        { video: true, audio: true }
-                    );
-            } catch (err) {
-                this.$toast.error(err.message);
-            }
+        pc.onicecandidate = event => {};
+        this.$parent.titleTabs = ["摄像头", "localSDP", "remoteSDP"];
+        try {
+            if (!this.stream)
+                this.stream = stream = await navigator.mediaDevices.getUserMedia(
+                    { video: true, audio: true }
+                );
+        } catch (err) {
+            this.$toast.error(err.message);
         }
     }
 };
