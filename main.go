@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -74,6 +75,26 @@ type WebRTC struct {
 	*PeerConnection
 	RemoteAddr string
 	videoTrack *Track
+	sequence   uint16
+	codecs.H264Packet
+	*os.File
+}
+
+func (rtc *WebRTC) WriteVideo(ts uint32, marker bool, payload []byte) error {
+	rtc.sequence++
+	// bb, _ := rtc.Unmarshal(payload)
+	// rtc.Write(bb)
+	return rtc.videoTrack.WriteRTP(&rtp.Packet{
+		Header: rtp.Header{
+			Version:        2,
+			SSRC:           SSRC,
+			PayloadType:    DefaultPayloadTypeH264,
+			SequenceNumber: rtc.sequence,
+			Timestamp:      ts,
+			Marker:         marker,
+		},
+		Payload: payload,
+	})
 }
 
 func (rtc *WebRTC) Play(streamPath string) bool {
@@ -85,26 +106,14 @@ func (rtc *WebRTC) Play(streamPath string) bool {
 				rtc.Stream.Close()
 			}
 		case ICEConnectionStateConnected:
-			var sequence uint16
 			var sub Subscriber
 			var sps []byte
 			var pps []byte
 			sub.ID = rtc.RemoteAddr
 			sub.Type = "WebRTC"
-			nextHeader := func(ts uint32, marker bool) rtp.Header {
-				sequence++
-				return rtp.Header{
-					Version:        2,
-					SSRC:           SSRC,
-					PayloadType:    DefaultPayloadTypeH264,
-					SequenceNumber: sequence,
-					Timestamp:      ts,
-					Marker:         marker,
-				}
-			}
 			stapA := func(naul ...[]byte) []byte {
 				var buffer bytes.Buffer
-				buffer.WriteByte(24)
+				buffer.WriteByte((naul[0][0] & 224) | 24)
 				for _, n := range naul {
 					l := len(n)
 					buffer.WriteByte(byte(l >> 8))
@@ -113,8 +122,8 @@ func (rtc *WebRTC) Play(streamPath string) bool {
 				}
 				return buffer.Bytes()
 			}
-
-			// aud := []byte{0x09, 0x30}
+			//rtc.File, _ = os.OpenFile("webrtc.h264", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+			aud := []byte{0x09, 0x30}
 			sub.OnData = func(packet *avformat.SendPacket) error {
 				if packet.Type == avformat.FLV_TAG_TYPE_AUDIO {
 					return nil
@@ -128,10 +137,11 @@ func (rtc *WebRTC) Play(streamPath string) bool {
 					pps = payload[2:ppsLen]
 				} else {
 					if packet.IsKeyFrame {
-						if err := rtc.videoTrack.WriteRTP(&rtp.Packet{
-							Header:  nextHeader(packet.Timestamp*90, true),
-							Payload: stapA(sps, pps),
-						}); err != nil {
+						if err := rtc.WriteVideo(packet.Timestamp*90, true, stapA([]byte{0x9, 0x10}, sps, pps)); err != nil {
+							return err
+						}
+					} else {
+						if err := rtc.WriteVideo(packet.Timestamp*90, true, aud); err != nil {
 							return err
 						}
 					}
@@ -147,10 +157,7 @@ func (rtc *WebRTC) Play(streamPath string) bool {
 							part := _payload[1:1000]
 							marker := false
 							for {
-								if err := rtc.videoTrack.WriteRTP(&rtp.Packet{
-									Header:  nextHeader(packet.Timestamp*90, marker),
-									Payload: append([]byte{indicator, header}, part...),
-								}); err != nil {
+								if err := rtc.WriteVideo(packet.Timestamp*90, marker, append([]byte{indicator, header}, part...)); err != nil {
 									return err
 								}
 								if _payload == nil {
@@ -168,10 +175,7 @@ func (rtc *WebRTC) Play(streamPath string) bool {
 								}
 							}
 						} else {
-							if err := rtc.videoTrack.WriteRTP(&rtp.Packet{
-								Header:  nextHeader(packet.Timestamp*90, true),
-								Payload: _payload,
-							}); err != nil {
+							if err := rtc.WriteVideo(packet.Timestamp*90, true, _payload); err != nil {
 								return err
 							}
 						}
@@ -223,7 +227,6 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 	rtc.PeerConnection = peerConnection
 	if rtc.RTP.Publish(streamPath) {
 		//f, _ := os.OpenFile("resource/live/rtc.h264", os.O_TRUNC|os.O_WRONLY, 0666)
-		var h264 codecs.H264Packet
 		rtc.Stream.Type = "WebRTC"
 		peerConnection.OnTrack(func(track *Track, receiver *RTPReceiver) {
 			defer rtc.Stream.Close()
@@ -249,7 +252,7 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 				if err = pack.Unmarshal(b[:i]); err != nil {
 					return
 				}
-				h264.Unmarshal(pack.Payload)
+				rtc.Unmarshal(pack.Payload)
 				// f.Write(bytes)
 			}
 		})
