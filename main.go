@@ -18,6 +18,7 @@ import (
 	"github.com/pion/rtp"
 	"github.com/pion/rtp/codecs"
 	. "github.com/pion/webrtc/v2"
+	"github.com/pion/webrtc/v2/pkg/media"
 )
 
 var config struct {
@@ -111,19 +112,8 @@ func (rtc *WebRTC) Play(streamPath string) bool {
 			var pps []byte
 			sub.ID = rtc.RemoteAddr
 			sub.Type = "WebRTC"
-			stapA := func(naul ...[]byte) []byte {
-				var buffer bytes.Buffer
-				buffer.WriteByte((naul[0][0] & 224) | 24)
-				for _, n := range naul {
-					l := len(n)
-					buffer.WriteByte(byte(l >> 8))
-					buffer.WriteByte(byte(l))
-					buffer.Write(n)
-				}
-				return buffer.Bytes()
-			}
-			//rtc.File, _ = os.OpenFile("webrtc.h264", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
-			aud := []byte{0x09, 0x30}
+			var lastTimeStamp uint32
+			var dataBuilder bytes.Buffer
 			sub.OnData = func(packet *avformat.SendPacket) error {
 				if packet.Type == avformat.FLV_TAG_TYPE_AUDIO {
 					return nil
@@ -131,68 +121,125 @@ func (rtc *WebRTC) Play(streamPath string) bool {
 				if packet.IsSequence {
 					payload := packet.Payload[11:]
 					spsLen := int(payload[0])<<8 + int(payload[1])
-					sps = payload[2:spsLen]
-					payload = payload[3+spsLen:]
+					payload = payload[2:]
+					sps = payload[:spsLen]
+					payload = payload[1+spsLen:]
 					ppsLen := int(payload[0])<<8 + int(payload[1])
-					pps = payload[2:ppsLen]
+					payload = payload[2:]
+					pps = payload[:ppsLen]
 				} else {
+					var s uint32
+					if lastTimeStamp > 0 {
+						s = packet.Timestamp - lastTimeStamp
+					}
 					if packet.IsKeyFrame {
-						if err := rtc.WriteVideo(packet.Timestamp*90, true, stapA([]byte{0x9, 0x10}, sps, pps)); err != nil {
-							return err
-						}
-					} else {
-						if err := rtc.WriteVideo(packet.Timestamp*90, true, aud); err != nil {
-							return err
-						}
+						dataBuilder.Write(avformat.NALU_Delimiter2)
+						dataBuilder.Write(sps)
+						dataBuilder.Write(avformat.NALU_Delimiter2)
+						dataBuilder.Write(pps)
 					}
 					payload := packet.Payload[5:]
 					for {
 						var naulLen = int(util.BigEndian.Uint32(payload))
 						payload = payload[4:]
-						_payload := payload[:naulLen]
-						if naulLen > 1000 {
-							indicator := (_payload[0] & 224) | 28
-							nalutype := _payload[0] & 31
-							header := 128 | nalutype
-							part := _payload[1:1000]
-							marker := false
-							for {
-								if err := rtc.WriteVideo(packet.Timestamp*90, marker, append([]byte{indicator, header}, part...)); err != nil {
-									return err
-								}
-								if _payload == nil {
-									break
-								}
-								_payload = _payload[1000:]
-								if len(_payload) <= 1000 {
-									header = 64 | nalutype
-									part = _payload
-									_payload = nil
-									marker = true
-								} else {
-									header = nalutype
-									part = _payload[:1000]
-								}
-							}
-						} else {
-							if err := rtc.WriteVideo(packet.Timestamp*90, true, _payload); err != nil {
-								return err
-							}
-						}
+						dataBuilder.Write(avformat.NALU_Delimiter2)
+						dataBuilder.Write(payload[:naulLen])
+						rtc.videoTrack.WriteSample(media.Sample{
+							Data:    dataBuilder.Bytes(),
+							Samples: s * 90,
+						})
+						dataBuilder.Reset()
 						if len(payload) < naulLen+4 {
 							break
 						}
 						payload = payload[naulLen:]
 					}
-					// if err := videoTrack.WriteRTP(&rtp.Packet{
-					// 	Header:  nextHeader(packet.Timestamp * 90),
-					// 	Payload: aud,
-					// }); err != nil {
-					// 	return err
-					// }
 				}
+				lastTimeStamp = packet.Timestamp
 				return nil
 			}
+			// stapA := func(naul ...[]byte) []byte {
+			// 	var buffer bytes.Buffer
+			// 	buffer.WriteByte((naul[0][0] & 224) | 24)
+			// 	for _, n := range naul {
+			// 		l := len(n)
+			// 		buffer.WriteByte(byte(l >> 8))
+			// 		buffer.WriteByte(byte(l))
+			// 		buffer.Write(n)
+			// 	}
+			// 	return buffer.Bytes()
+			// }
+			// //rtc.File, _ = os.OpenFile("webrtc.h264", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+			// aud := []byte{0x09, 0x30}
+			// sub.OnData = func(packet *avformat.SendPacket) error {
+			// 	if packet.Type == avformat.FLV_TAG_TYPE_AUDIO {
+			// 		return nil
+			// 	}
+			// 	if packet.IsSequence {
+			// 		payload := packet.Payload[11:]
+			// 		spsLen := int(payload[0])<<8 + int(payload[1])
+			// 		sps = payload[2:spsLen]
+			// 		payload = payload[3+spsLen:]
+			// 		ppsLen := int(payload[0])<<8 + int(payload[1])
+			// 		pps = payload[2:ppsLen]
+			// 	} else {
+			// 		if packet.IsKeyFrame {
+			// 			if err := rtc.WriteVideo(packet.Timestamp*90, true, stapA([]byte{0x9, 0x10}, sps, pps)); err != nil {
+			// 				return err
+			// 			}
+			// 		} else {
+			// 			if err := rtc.WriteVideo(packet.Timestamp*90, true, aud); err != nil {
+			// 				return err
+			// 			}
+			// 		}
+			// 		payload := packet.Payload[5:]
+			// 		for {
+			// 			var naulLen = int(util.BigEndian.Uint32(payload))
+			// 			payload = payload[4:]
+			// 			_payload := payload[:naulLen]
+			// 			if naulLen > 1000 {
+			// 				indicator := (_payload[0] & 224) | 28
+			// 				nalutype := _payload[0] & 31
+			// 				header := 128 | nalutype
+			// 				part := _payload[1:1000]
+			// 				marker := false
+			// 				for {
+			// 					if err := rtc.WriteVideo(packet.Timestamp*90, marker, append([]byte{indicator, header}, part...)); err != nil {
+			// 						return err
+			// 					}
+			// 					if _payload == nil {
+			// 						break
+			// 					}
+			// 					_payload = _payload[1000:]
+			// 					if len(_payload) <= 1000 {
+			// 						header = 64 | nalutype
+			// 						part = _payload
+			// 						_payload = nil
+			// 						marker = true
+			// 					} else {
+			// 						header = nalutype
+			// 						part = _payload[:1000]
+			// 					}
+			// 				}
+			// 			} else {
+			// 				if err := rtc.WriteVideo(packet.Timestamp*90, true, _payload); err != nil {
+			// 					return err
+			// 				}
+			// 			}
+			// 			if len(payload) < naulLen+4 {
+			// 				break
+			// 			}
+			// 			payload = payload[naulLen:]
+			// 		}
+			// 		// if err := videoTrack.WriteRTP(&rtp.Packet{
+			// 		// 	Header:  nextHeader(packet.Timestamp * 90),
+			// 		// 	Payload: aud,
+			// 		// }); err != nil {
+			// 		// 	return err
+			// 		// }
+			// 	}
+			// 	return nil
+			// }
 			go sub.Subscribe(streamPath)
 		}
 	})
