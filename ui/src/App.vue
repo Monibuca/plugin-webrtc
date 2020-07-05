@@ -1,53 +1,36 @@
 <template>
     <div>
-        <pre v-if="$parent.titleTabActive == 1">{{localSDP}}</pre>
-        <pre v-else-if="$parent.titleTabActive == 2">{{remoteSDP}}</pre>
-        <div v-else>
+        <div v-if="$parent.titleTabActive == 0">
             <mu-text-field v-model="streamPath" label="streamPath"></mu-text-field>
-            <span class="blink" v-if="!localSDP || ask">Connecting</span>
-            <template>
-                <m-button @click="startSession('publish')">Publish</m-button>
-                <m-button @click="startSession('play')">Play</m-button>
-            </template>
-            <m-button @click="stopSession">Stop</m-button>
+            <m-button @click="publish" v-if="!remoteSDP">Publish</m-button>
+            <m-button @click="stopSession" v-else>Stop</m-button>
+            <a v-if="remoteSDP" :href="remoteSDPURL" download="remoteSDP.txt">remoteSDP</a>
+            <span>&nbsp;&nbsp;</span>
+            <a v-if="localSDP" :href="localSDPURL" download="localSDP.txt">localSDP</a>
             <br />
             <video ref="video1" :srcObject.prop="stream" width="640" height="480" autoplay muted></video>
         </div>
+        <stream-table v-else-if="$parent.titleTabActive == 1">
+            <template v-slot="scope">
+                <m-button @click="preview(scope)">Play</m-button>
+            <template>
+        </stream-table>
+        <pre v-else-if="$parent.titleTabActive == 2">{{localSDP}}</pre>
+        <pre v-else-if="$parent.titleTabActive == 3">{{remoteSDP}}</pre>
+        <webrtc-player ref="player" v-model="previewStreamPath"></webrtc-player>
     </div>
 </template>
 
 <script>
-const config = {
-    iceServers: [
-        // {
-        //   urls:[
-        //     "stun:stun.ekiga.net",
-        //     "stun:stun.ideasip.com",
-        //     "stun:stun.schlund.de",
-        //     "stun:stun.stunprotocol.org:3478",
-        //     "stun:stun.voiparound.com",
-        //     "stun:stun.voipbuster.com",
-        //     "stun:stun.voipstunt.com",
-        //     "stun:stun.voxgratia.org",
-        //     "stun:stun.services.mozilla.com",
-        //     "stun:stun.xten.com",
-        //     "stun:stun.softjoys.com",
-        //     "stun:stunserver.org",
-        //     "stun:stun.schlund.de",
-        //     "stun:stun.rixtelecom.se",
-        //     "stun:stun.iptel.org",
-        //     "stun:stun.ideasip.com",
-        //     "stun:stun.fwdnet.net",
-        //     "stun:stun.ekiga.net",
-        //     "stun:stun01.sipphone.com",
-        //   ]
-        // }
-    ]
-};
+import WebrtcPlayer from "./components/Player"
+const config = { iceServers: []};
 let pc = new RTCPeerConnection(config);
-var stream = null;
+var stream = null
 var streamPath = "live/rtc";
 export default {
+    components:{
+        WebrtcPlayer
+    },
     data() {
         return {
             localSDP: pc && pc.localDescription && pc.localDescription.sdp,
@@ -55,70 +38,45 @@ export default {
             streamPath,
             iceConnectionState: pc && pc.iceConnectionState,
             stream,
-            type: "",
-            ask: false
+            previewStreamPath:false,
+            localSDPURL:"",
+            remoteSDPURL:""
         };
     },
     methods: {
-        async startSession(type) {
-            this.type = type;
-            this.ask = true;
-            if (type == "play") {
-                const result = await this.ajax({
-                    url: "/webrtc/preparePlay?streamPath=" + this.streamPath,
-                    dataType: "json"
-                });
-                if (result.errmsg) {
-                    this.$toast.error(result.errmsg);
-                    return;
-                } else {
-                    streamPath = this.streamPath;
-                    this.remoteSDP = result.sdp;
-                }
-                pc.ontrack = event => {
-                     console.log(event)
-                    if (event.streams[0].id == "monibuca")
-                        this.stream = stream = event.streams[0];
-                };
-                await pc.setRemoteDescription(
-                    new RTCSessionDescription(result)
-                );
-                await pc.setLocalDescription(await pc.createAnswer());
-                this.localSDP = pc.localDescription.sdp;
-            } else {
-                pc.addStream(stream);
-                await pc.setLocalDescription(await pc.createOffer());
-                this.localSDP = pc.localDescription.sdp;
-            }
+        async publish() {
+            pc.addStream(stream);
+            await pc.setLocalDescription(await pc.createOffer());
+            this.localSDP = pc.localDescription.sdp;
+            this.localSDPURL = URL.createObjectURL(new Blob([ this.localSDP ],{type:'text/plain'}))
             const result = await this.ajax({
                 type: "POST",
                 processData: false,
                 data: JSON.stringify(pc.localDescription),
-                url: "/webrtc/" + type + "?streamPath=" + this.streamPath,
+                url: "/webrtc/publish?streamPath=" + this.streamPath,
                 dataType: "json"
             });
-            this.ask = false;
             if (result!="success") {
                 this.$toast.error(result.errmsg||result);
                 return;
             } else {
                 streamPath = this.streamPath;
             }
-            if (type == "play") {
-               
-            } else {
-                this.remoteSDP = result.sdp;
-                pc.setRemoteDescription(new RTCSessionDescription(result));
-            }
+            this.remoteSDP = result.sdp;
+            this.remoteSDPURL = URL.createObjectURL(new Blob([ this.remoteSDP ],{type:'text/plain'}))
+            pc.setRemoteDescription(new RTCSessionDescription(result));
         },
         stopSession() {
             pc.close();
             pc = new RTCPeerConnection(config);
             this.remoteSDP = "";
             this.localSDP = "";
-            this.type = "";
             // this.connectICE().catch(err => this.$toast.error(err.message));
-        }
+        },
+        preview({row}) {
+            this.previewStreamPath = true
+             this.$nextTick(() =>this.$refs.player.play(row.StreamPath));
+        },
     },
     async mounted() {
         pc.onsignalingstatechange = e => {
@@ -129,7 +87,7 @@ export default {
             this.iceConnectionState = pc.iceConnectionState;
         };
         pc.onicecandidate = event => {};
-        this.$parent.titleTabs = ["摄像头", "localSDP", "remoteSDP"];
+        this.$parent.titleTabs = ["publish","play"];
         try {
             if (!this.stream)
                 this.stream = stream = await navigator.mediaDevices.getUserMedia(

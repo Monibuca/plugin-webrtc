@@ -2,6 +2,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/Monibuca/engine/v2 v2.1.0 h1:pHeDCEFDusKFsZLpconYj8U5LCaWApnjd+yQRHYgQsQ=
 github.com/Monibuca/engine/v2 v2.1.0/go.mod h1:34EYjjV15G6myuHOKaJkO7y5tJ1Arq/NfC9Weacr2mc=
+github.com/Monibuca/engine/v2 v2.1.4 h1:TZK6o/8giu4Yzd9sqntAHZkirqxMahaak/TMiMCSAKg=
+github.com/Monibuca/engine/v2 v2.1.4/go.mod h1:34EYjjV15G6myuHOKaJkO7y5tJ1Arq/NfC9Weacr2mc=
 github.com/Monibuca/plugin-rtp v0.0.0-20200531020026-1b12ef72f221 h1:WBC0eLB7J3PXWZiu4cr9kdcNAkR/74jf0+7zkYDzwZQ=
 github.com/Monibuca/plugin-rtp v0.0.0-20200531020026-1b12ef72f221/go.mod h1:62NoacApn7++z5wQnr9ktSfn+vVZL0eSvbD/EqoSHoM=
 github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d h1:G0m3OIz70MZUWq3EgK3CesDbo8upS2Vm9/P3FtgI+Jk=
