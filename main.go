@@ -53,8 +53,27 @@ var api *API
 var SSRC uint32
 var SSRCMap = make(map[string]uint32)
 var ssrcLock sync.Mutex
-var playWaitList sync.Map
+var playWaitList WaitList
 
+type WaitList struct {
+	m map[string]*WebRTC
+	l sync.Mutex
+}
+
+func (wl *WaitList) Set(k string, v *WebRTC) {
+	wl.l.Lock()
+	defer wl.l.Unlock()
+	if wl.m == nil {
+		wl.m = make(map[string]*WebRTC)
+	}
+	wl.m[k] = v
+}
+func (wl *WaitList) Get(k string) *WebRTC {
+	wl.l.Lock()
+	defer wl.l.Unlock()
+	defer delete(wl.m, k)
+	return wl.m[k]
+}
 func init() {
 	m.RegisterCodec(NewRTPCodec(RTPCodecTypeVideo,
 		H264,
@@ -210,6 +229,7 @@ func (rtc *WebRTC) GetAnswer(localSdp SessionDescription) ([]byte, error) {
 		return bytes, nil
 	}
 }
+
 func run() {
 	http.HandleFunc("/webrtc/play", func(w http.ResponseWriter, r *http.Request) {
 		streamPath := r.URL.Query().Get("streamPath")
@@ -220,8 +240,7 @@ func run() {
 			Println(err)
 			return
 		}
-		if value, ok := playWaitList.Load(streamPath); ok {
-			rtc := value.(*WebRTC)
+		if rtc := playWaitList.Get(streamPath); rtc != nil {
 			if err := rtc.SetRemoteDescription(offer); err != nil {
 				Println(err)
 				return
@@ -273,7 +292,7 @@ func run() {
 			return
 		}
 		rtc.videoTrack = videoTrack
-		playWaitList.Store(streamPath, rtc)
+		playWaitList.Set(streamPath, rtc)
 		rtc.RemoteAddr = r.RemoteAddr
 		offer, err := rtc.CreateOffer(nil)
 		if err != nil {
