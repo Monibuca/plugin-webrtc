@@ -4,9 +4,12 @@
             <mu-text-field v-model="streamPath" label="streamPath"></mu-text-field>
             <m-button @click="publish" v-if="!remoteSDP">Publish</m-button>
             <m-button @click="stopSession" v-else>Stop</m-button>
-            <a v-if="remoteSDP" :href="remoteSDPURL" download="remoteSDP.txt">remoteSDP</a>
-            <span>&nbsp;&nbsp;</span>
-            <a v-if="localSDP" :href="localSDPURL" download="localSDP.txt">localSDP</a>
+            <mu-badge v-if="remoteSDP">
+                <a slot="content" :href="remoteSDPURL" download="remoteSDP.txt">remoteSDP</a>
+            </mu-badge>
+            <mu-badge v-if="localSDP">
+                <a slot="content"  :href="localSDPURL" download="localSDP.txt">localSDP</a>
+            </mu-badge>
             <br />
             <video ref="video1" :srcObject.prop="stream" width="640" height="480" autoplay muted></video>
         </div>
@@ -56,12 +59,12 @@ export default {
                 url: "/webrtc/publish?streamPath=" + this.streamPath,
                 dataType: "json"
             });
-            if (result!="success") {
-                this.$toast.error(result.errmsg||result);
+            console.log(result)
+            if (typeof result == "string"){
+                this.$toast.error(result);
                 return;
-            } else {
-                streamPath = this.streamPath;
             }
+            streamPath = this.streamPath;
             this.remoteSDP = result.sdp;
             this.remoteSDPURL = URL.createObjectURL(new Blob([ this.remoteSDP ],{type:'text/plain'}))
             pc.setRemoteDescription(new RTCSessionDescription(result));

@@ -335,9 +335,8 @@ func run() {
 				w.Write([]byte(err.Error()))
 				return
 			}
-			w.Write([]byte(`success`))
 		} else {
-			w.Write([]byte(`{"errmsg":"bad name"}`))
+			w.Write([]byte("bad name"))
 		}
 	})
 }
