@@ -221,12 +221,12 @@ var staticRenderFns = []
 
 // CONCATENATED MODULE: ./src/App.vue?vue&type=template&id=50fea0bc&scoped=true&
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"7d106341-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/Player.vue?vue&type=template&id=edf62584&
-var Playervue_type_template_id_edf62584_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('Modal',_vm._g(_vm._b({attrs:{"draggable":"","title":_vm.streamPath},on:{"on-ok":_vm.onClosePreview,"on-cancel":_vm.onClosePreview}},'Modal',_vm.$attrs,false),_vm.$listeners),[_c('video',{ref:"webrtc",attrs:{"width":"488","height":"275","autoplay":"","muted":"","controls":""},domProps:{"srcObject":_vm.stream,"muted":true}}),_c('div',{attrs:{"slot":"footer"},slot:"footer"},[(_vm.remoteSDP)?_c('mu-badge',[_c('a',{attrs:{"slot":"content","href":_vm.remoteSDPURL,"download":"remoteSDP.txt"},slot:"content"},[_vm._v("remoteSDP")])]):_vm._e(),(_vm.localSDP)?_c('mu-badge',[_c('a',{attrs:{"slot":"content","href":_vm.localSDPURL,"download":"localSDP.txt"},slot:"content"},[_vm._v("localSDP")])]):_vm._e()],1)])}
-var Playervue_type_template_id_edf62584_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"7d106341-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/Player.vue?vue&type=template&id=6aea3512&
+var Playervue_type_template_id_6aea3512_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('Modal',_vm._g(_vm._b({attrs:{"draggable":"","title":_vm.streamPath},on:{"on-ok":_vm.onClosePreview,"on-cancel":_vm.onClosePreview}},'Modal',_vm.$attrs,false),_vm.$listeners),[_c('video',{ref:"webrtc",attrs:{"width":"488","height":"275","autoplay":"","muted":"","controls":""},domProps:{"srcObject":_vm.stream,"muted":true}}),_c('div',{attrs:{"slot":"footer"},slot:"footer"},[(_vm.remoteSDP)?_c('mu-badge',[_c('a',{attrs:{"slot":"content","href":_vm.remoteSDPURL,"download":"remoteSDP.txt"},slot:"content"},[_vm._v("remoteSDP")])]):_vm._e(),(_vm.localSDP)?_c('mu-badge',[_c('a',{attrs:{"slot":"content","href":_vm.localSDPURL,"download":"localSDP.txt"},slot:"content"},[_vm._v("localSDP")])]):_vm._e()],1)])}
+var Playervue_type_template_id_6aea3512_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/Player.vue?vue&type=template&id=edf62584&
+// CONCATENATED MODULE: ./src/components/Player.vue?vue&type=template&id=6aea3512&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/Player.vue?vue&type=script&lang=js&
 //
@@ -263,56 +263,57 @@ let pc = null;
       streamPath: ""
     };
   },
-  methods: {
-    async play(streamPath) {
-      pc = new RTCPeerConnection();
-      this.streamPath = streamPath;
-      pc.onsignalingstatechange = e => {
-        console.log(e);
-      };
-      pc.oniceconnectionstatechange = e => {
-        this.$toast.info(pc.iceConnectionState);
-        this.iceConnectionState = pc.iceConnectionState;
-      };
-      pc.onicecandidate = event => {};
-      const result = await this.ajax({
-        url: "/webrtc/preparePlay?streamPath=" + this.streamPath,
-        dataType: "json"
-      });
-      if (result.errmsg) {
-        this.$toast.error(result.errmsg);
-        return;
-      } else {
-        this.remoteSDP = result.sdp;
-        this.remoteSDPURL = URL.createObjectURL(
-          new Blob([this.remoteSDP], { type: "text/plain" })
-        );
-      }
-      pc.ontrack = event => {
-        console.log(event);
-        if (event.streams[0].id == "monibuca") this.stream = event.streams[0];
-      };
-      await pc.setRemoteDescription(new RTCSessionDescription(result));
-      await pc.setLocalDescription(await pc.createAnswer());
-      this.localSDP = pc.localDescription.sdp;
-      this.localSDPURL = URL.createObjectURL(
-        new Blob([this.localSDP], { type: "text/plain" })
-      );
-      result = await this.ajax({
-        type: "POST",
-        processData: false,
-        data: JSON.stringify(pc.localDescription),
-        url: "/webrtc/play?streamPath=" + this.streamPath,
-        dataType: "json"
-      });
-      if (result != "success") {
-        this.$toast.error(result.errmsg || result);
-      }
-    },
-    onClosePreview() {
-      pc.close();
+
+    methods: {
+        async play(streamPath) {
+            pc = new RTCPeerConnection();
+            this.streamPath = streamPath;
+            pc.onsignalingstatechange = e => {
+                //console.log(e);
+            };
+            pc.oniceconnectionstatechange = e => {
+                this.$toast.info(pc.iceConnectionState);
+                this.iceConnectionState = pc.iceConnectionState;
+            };
+            pc.onicecandidate = event => {
+                console.log(event)
+            };
+            let result = await this.ajax({
+                url: "/webrtc/preparePlay?streamPath=" + this.streamPath,
+                dataType: "json"
+            });
+            if (result.errmsg) {
+                this.$toast.error(result.errmsg);
+                return;
+            } else {
+                this.remoteSDP = result.sdp;
+                this.remoteSDPURL = URL.createObjectURL(new Blob([this.remoteSDP], { type: "text/plain" }));
+            }
+            pc.ontrack = event => {
+               // console.log(event);
+                if (event.track.kind == "video")
+                    this.stream = event.streams[0];
+            };
+            await pc.setRemoteDescription(new RTCSessionDescription(result));
+            await pc.setLocalDescription(await pc.createAnswer());
+            this.localSDP = pc.localDescription.sdp;
+            this.localSDPURL = URL.createObjectURL(
+                new Blob([this.localSDP], { type: "text/plain" })
+            );
+            result = await this.ajax({
+                type: "POST",
+                processData: false,
+                data: JSON.stringify(pc.localDescription.toJSON()),
+                url: "/webrtc/play?streamPath=" + this.streamPath,
+            });
+            if (result != "success") {
+                this.$toast.error(result);
+            }
+        },
+        onClosePreview() {
+            pc.close();
+        }
     }
-  }
 });
 
 // CONCATENATED MODULE: ./src/components/Player.vue?vue&type=script&lang=js&
@@ -427,8 +428,8 @@ function normalizeComponent (
 
 var component = normalizeComponent(
   components_Playervue_type_script_lang_js_,
-  Playervue_type_template_id_edf62584_render,
-  Playervue_type_template_id_edf62584_staticRenderFns,
+  Playervue_type_template_id_6aea3512_render,
+  Playervue_type_template_id_6aea3512_staticRenderFns,
   false,
   null,
   null,

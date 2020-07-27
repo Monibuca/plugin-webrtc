@@ -48,10 +48,6 @@ var config struct {
 // 	port int
 // }
 
-var m MediaEngine
-var api *API
-var SSRC uint32
-var SSRCMap = make(map[string]uint32)
 var ssrcLock sync.Mutex
 var playWaitList WaitList
 
@@ -75,15 +71,7 @@ func (wl *WaitList) Get(k string) *WebRTC {
 	return wl.m[k]
 }
 func init() {
-	m.RegisterCodec(NewRTPCodec(RTPCodecTypeVideo,
-		H264,
-		90000,
-		0,
-		"level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f",
-		DefaultPayloadTypeH264,
-		new(avformat.H264)))
-	//m.RegisterCodec(NewRTPPCMUCodec(DefaultPayloadTypePCMU, 8000))
-	api = NewAPI(WithMediaEngine(m))
+
 	InstallPlugin(&PluginConfig{
 		Config: &config,
 		Name:   "WebRTC",
@@ -97,11 +85,52 @@ type WebRTC struct {
 	*PeerConnection
 	RemoteAddr string
 	videoTrack *Track
+	m          MediaEngine
+	api        *API
 	// codecs.H264Packet
 	// *os.File
 }
 
 func (rtc *WebRTC) Play(streamPath string) bool {
+	var sub Subscriber
+	sub.ID = rtc.RemoteAddr
+	sub.Type = "WebRTC"
+	var lastTimeStamp uint32
+	sub.OnData = func(packet *avformat.SendPacket) error {
+		if packet.Type == avformat.FLV_TAG_TYPE_AUDIO {
+			return nil
+		}
+		if packet.IsSequence {
+		} else {
+			var s uint32
+			if lastTimeStamp > 0 {
+				s = packet.Timestamp - lastTimeStamp
+			}
+			if packet.IsKeyFrame {
+				rtc.videoTrack.WriteSample(media.Sample{
+					Data:    sub.SPS,
+					Samples: 0,
+				})
+				rtc.videoTrack.WriteSample(media.Sample{
+					Data:    sub.PPS,
+					Samples: 0,
+				})
+			}
+			for payload := packet.Payload[5:]; len(payload) > 4; {
+				var naulLen = int(util.BigEndian.Uint32(payload))
+				payload = payload[4:]
+				rtc.videoTrack.WriteSample(media.Sample{
+					Data:    payload[:naulLen],
+					Samples: s * 90,
+				})
+				s = 0
+				payload = payload[naulLen:]
+			}
+		}
+		lastTimeStamp = packet.Timestamp
+		return nil
+	}
+	// go sub.Subscribe(streamPath)
 	rtc.OnICEConnectionStateChange(func(connectionState ICEConnectionState) {
 		Printf("%s Connection State has changed %s ", streamPath, connectionState.String())
 		switch connectionState {
@@ -110,51 +139,23 @@ func (rtc *WebRTC) Play(streamPath string) bool {
 				rtc.Stream.Close()
 			}
 		case ICEConnectionStateConnected:
-			var sub Subscriber
-			sub.ID = rtc.RemoteAddr
-			sub.Type = "WebRTC"
-			var lastTimeStamp uint32
-			sub.OnData = func(packet *avformat.SendPacket) error {
-				if packet.Type == avformat.FLV_TAG_TYPE_AUDIO {
-					return nil
-				}
-				if packet.IsSequence {
-				} else {
-					var s uint32
-					if lastTimeStamp > 0 {
-						s = packet.Timestamp - lastTimeStamp
-					}
-					if packet.IsKeyFrame {
-						rtc.videoTrack.WriteSample(media.Sample{
-							Data:    sub.SPS,
-							Samples: 0,
-						})
-						rtc.videoTrack.WriteSample(media.Sample{
-							Data:    sub.PPS,
-							Samples: 0,
-						})
-					}
-					for payload := packet.Payload[5:]; len(payload) > 4; {
-						var naulLen = int(util.BigEndian.Uint32(payload))
-						payload = payload[4:]
-						rtc.videoTrack.WriteSample(media.Sample{
-							Data:    payload[:naulLen],
-							Samples: s * 90,
-						})
-						s = 0
-						payload = payload[naulLen:]
-					}
-				}
-				lastTimeStamp = packet.Timestamp
-				return nil
-			}
-			go sub.Subscribe(streamPath)
+			//rtc.videoTrack = rtc.GetSenders()[0].Track()
+			sub.Subscribe(streamPath)
 		}
 	})
 	return true
 }
 func (rtc *WebRTC) Publish(streamPath string) bool {
-	peerConnection, err := api.NewPeerConnection(Configuration{
+	rtc.m.RegisterCodec(NewRTPCodec(RTPCodecTypeVideo,
+		H264,
+		90000,
+		0,
+		"level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f",
+		DefaultPayloadTypeH264,
+		new(avformat.H264)))
+	//m.RegisterCodec(NewRTPPCMUCodec(DefaultPayloadTypePCMU, 8000))
+	rtc.api = NewAPI(WithMediaEngine(rtc.m))
+	peerConnection, err := rtc.api.NewPeerConnection(Configuration{
 		ICEServers: []ICEServer{
 			{
 				URLs: config.ICEServers,
@@ -233,79 +234,84 @@ func (rtc *WebRTC) GetAnswer(localSdp SessionDescription) ([]byte, error) {
 func run() {
 	http.HandleFunc("/webrtc/play", func(w http.ResponseWriter, r *http.Request) {
 		streamPath := r.URL.Query().Get("streamPath")
-		offer := SessionDescription{}
+		var offer SessionDescription
 		bytes, err := ioutil.ReadAll(r.Body)
 		err = json.Unmarshal(bytes, &offer)
+		defer func() {
+			if err != nil {
+				Println(err)
+				fmt.Fprint(w, err)
+				return
+			}
+		}()
 		if err != nil {
-			Println(err)
 			return
 		}
 		if rtc := playWaitList.Get(streamPath); rtc != nil {
 			if err := rtc.SetRemoteDescription(offer); err != nil {
-				Println(err)
 				return
 			}
-			if rtc.Play(streamPath) {
-				w.Write([]byte(`success`))
-			} else {
-				w.Write([]byte(`{"errmsg":"bad name"}`))
-			}
+			rtc.Play(streamPath)
 		} else {
-			w.Write([]byte(`{"errmsg":"bad name"}`))
+			w.Write([]byte("bad name"))
 		}
 	})
 	http.HandleFunc("/webrtc/preparePlay", func(w http.ResponseWriter, r *http.Request) {
 		streamPath := r.URL.Query().Get("streamPath")
+		pli := "42001f"
+		if stream := FindStream(streamPath); stream != nil {
+			pli = fmt.Sprintf("%x", stream.SPS[1:4])
+		}
 		rtc := new(WebRTC)
-		peerConnection, err := api.NewPeerConnection(Configuration{
+		rtc.m.RegisterCodec(NewRTPCodec(RTPCodecTypeVideo,
+			H264,
+			90000,
+			0,
+			"level-asymmetry-allowed=1;packetization-mode=1;profile-level-id="+pli,
+			DefaultPayloadTypeH264,
+			new(avformat.H264)))
+		//m.RegisterCodec(NewRTPPCMUCodec(DefaultPayloadTypePCMU, 8000))
+		rtc.api = NewAPI(WithMediaEngine(rtc.m))
+		peerConnection, err := rtc.api.NewPeerConnection(Configuration{
 			ICEServers: []ICEServer{
 				{
 					URLs: config.ICEServers,
 				},
 			},
 		})
-		if _, err = peerConnection.AddTransceiverFromKind(RTPCodecTypeVideo); err != nil {
+		rtc.PeerConnection = peerConnection
+		rtc.OnICECandidate(func(ice *ICECandidate) {
+			if ice != nil {
+				println(ice.ToJSON().Candidate)
+			}
+		})
+		if r, err := peerConnection.AddTransceiverFromKind(RTPCodecTypeVideo); err == nil {
+			rtc.videoTrack = r.Sender().Track()
+		} else {
+			Println(err)
+		}
+		defer func() {
 			if err != nil {
 				Println(err)
+				fmt.Fprintf(w, `{"errmsg":"%s"}`, err.Error())
 				return
 			}
-		}
+		}()
 		if err != nil {
 			return
 		}
-
-		rtc.PeerConnection = peerConnection
-		// Create a video track, using the same SSRC as the incoming RTP Packet
-		ssrcLock.Lock()
-		if _, ok := SSRCMap[streamPath]; !ok {
-			SSRC++
-			SSRCMap[streamPath] = SSRC
-		}
-		ssrcLock.Unlock()
-		videoTrack, err := rtc.NewTrack(DefaultPayloadTypeH264, SSRC, "video", "monibuca")
-		if err != nil {
-			Println(err)
-			return
-		}
-		if _, err = rtc.AddTrack(videoTrack); err != nil {
-			Println(err)
-			return
-		}
-		rtc.videoTrack = videoTrack
 		playWaitList.Set(streamPath, rtc)
 		rtc.RemoteAddr = r.RemoteAddr
 		offer, err := rtc.CreateOffer(nil)
 		if err != nil {
-			Println(err)
 			return
 		}
 		if bytes, err := rtc.GetAnswer(offer); err == nil {
 			w.Write(bytes)
 		} else {
-			Println(err)
-			w.Write([]byte(err.Error()))
 			return
 		}
+
 	})
 	http.HandleFunc("/webrtc/publish", func(w http.ResponseWriter, r *http.Request) {
 		streamPath := r.URL.Query().Get("streamPath")

@@ -32,55 +32,56 @@ export default {
       streamPath: ""
     };
   },
-  methods: {
-    async play(streamPath) {
-      pc = new RTCPeerConnection();
-      this.streamPath = streamPath;
-      pc.onsignalingstatechange = e => {
-        console.log(e);
-      };
-      pc.oniceconnectionstatechange = e => {
-        this.$toast.info(pc.iceConnectionState);
-        this.iceConnectionState = pc.iceConnectionState;
-      };
-      pc.onicecandidate = event => {};
-      const result = await this.ajax({
-        url: "/webrtc/preparePlay?streamPath=" + this.streamPath,
-        dataType: "json"
-      });
-      if (result.errmsg) {
-        this.$toast.error(result.errmsg);
-        return;
-      } else {
-        this.remoteSDP = result.sdp;
-        this.remoteSDPURL = URL.createObjectURL(
-          new Blob([this.remoteSDP], { type: "text/plain" })
-        );
-      }
-      pc.ontrack = event => {
-        console.log(event);
-        if (event.streams[0].id == "monibuca") this.stream = event.streams[0];
-      };
-      await pc.setRemoteDescription(new RTCSessionDescription(result));
-      await pc.setLocalDescription(await pc.createAnswer());
-      this.localSDP = pc.localDescription.sdp;
-      this.localSDPURL = URL.createObjectURL(
-        new Blob([this.localSDP], { type: "text/plain" })
-      );
-      result = await this.ajax({
-        type: "POST",
-        processData: false,
-        data: JSON.stringify(pc.localDescription),
-        url: "/webrtc/play?streamPath=" + this.streamPath,
-        dataType: "json"
-      });
-      if (result != "success") {
-        this.$toast.error(result.errmsg || result);
-      }
-    },
-    onClosePreview() {
-      pc.close();
+
+    methods: {
+        async play(streamPath) {
+            pc = new RTCPeerConnection();
+            this.streamPath = streamPath;
+            pc.onsignalingstatechange = e => {
+                //console.log(e);
+            };
+            pc.oniceconnectionstatechange = e => {
+                this.$toast.info(pc.iceConnectionState);
+                this.iceConnectionState = pc.iceConnectionState;
+            };
+            pc.onicecandidate = event => {
+                console.log(event)
+            };
+            let result = await this.ajax({
+                url: "/webrtc/preparePlay?streamPath=" + this.streamPath,
+                dataType: "json"
+            });
+            if (result.errmsg) {
+                this.$toast.error(result.errmsg);
+                return;
+            } else {
+                this.remoteSDP = result.sdp;
+                this.remoteSDPURL = URL.createObjectURL(new Blob([this.remoteSDP], { type: "text/plain" }));
+            }
+            pc.ontrack = event => {
+               // console.log(event);
+                if (event.track.kind == "video")
+                    this.stream = event.streams[0];
+            };
+            await pc.setRemoteDescription(new RTCSessionDescription(result));
+            await pc.setLocalDescription(await pc.createAnswer());
+            this.localSDP = pc.localDescription.sdp;
+            this.localSDPURL = URL.createObjectURL(
+                new Blob([this.localSDP], { type: "text/plain" })
+            );
+            result = await this.ajax({
+                type: "POST",
+                processData: false,
+                data: JSON.stringify(pc.localDescription.toJSON()),
+                url: "/webrtc/play?streamPath=" + this.streamPath,
+            });
+            if (result != "success") {
+                this.$toast.error(result);
+            }
+        },
+        onClosePreview() {
+            pc.close();
+        }
     }
-  }
 };
 </script>
