@@ -223,19 +223,19 @@ if (typeof window !== 'undefined') {
 // Indicate to webpack that this file can be concatenated
 /* harmony default export */ var setPublicPath = (null);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"7d106341-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=template&id=50fea0bc&scoped=true&
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"0b526416-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=template&id=50fea0bc&scoped=true&
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[(_vm.$parent.titleTabActive == 0)?_c('div',[_c('mu-text-field',{attrs:{"label":"streamPath"},model:{value:(_vm.streamPath),callback:function ($$v) {_vm.streamPath=$$v},expression:"streamPath"}}),(!_vm.remoteSDP)?_c('m-button',{on:{"click":_vm.publish}},[_vm._v("Publish")]):_c('m-button',{on:{"click":_vm.stopSession}},[_vm._v("Stop")]),(_vm.remoteSDP)?_c('mu-badge',[_c('a',{attrs:{"slot":"content","href":_vm.remoteSDPURL,"download":"remoteSDP.txt"},slot:"content"},[_vm._v("remoteSDP")])]):_vm._e(),(_vm.localSDP)?_c('mu-badge',[_c('a',{attrs:{"slot":"content","href":_vm.localSDPURL,"download":"localSDP.txt"},slot:"content"},[_vm._v("localSDP")])]):_vm._e(),_c('br'),_c('video',{ref:"video1",attrs:{"width":"640","height":"480","autoplay":"","muted":""},domProps:{"srcObject":_vm.stream,"muted":true}})],1):(_vm.$parent.titleTabActive == 1)?_c('stream-table',{scopedSlots:_vm._u([{key:"default",fn:function(scope){return [_c('m-button',{on:{"click":function($event){return _vm.preview(scope)}}},[_vm._v("Play")]),void 0]}}])}):(_vm.$parent.titleTabActive == 2)?_c('pre',[_vm._v(_vm._s(_vm.localSDP))]):(_vm.$parent.titleTabActive == 3)?_c('pre',[_vm._v(_vm._s(_vm.remoteSDP))]):_vm._e(),_c('webrtc-player',{ref:"player",model:{value:(_vm.previewStreamPath),callback:function ($$v) {_vm.previewStreamPath=$$v},expression:"previewStreamPath"}})],1)}
 var staticRenderFns = []
 
 
 // CONCATENATED MODULE: ./src/App.vue?vue&type=template&id=50fea0bc&scoped=true&
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"7d106341-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/Player.vue?vue&type=template&id=6aea3512&
-var Playervue_type_template_id_6aea3512_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('Modal',_vm._g(_vm._b({attrs:{"draggable":"","title":_vm.streamPath},on:{"on-ok":_vm.onClosePreview,"on-cancel":_vm.onClosePreview}},'Modal',_vm.$attrs,false),_vm.$listeners),[_c('video',{ref:"webrtc",attrs:{"width":"488","height":"275","autoplay":"","muted":"","controls":""},domProps:{"srcObject":_vm.stream,"muted":true}}),_c('div',{attrs:{"slot":"footer"},slot:"footer"},[(_vm.remoteSDP)?_c('mu-badge',[_c('a',{attrs:{"slot":"content","href":_vm.remoteSDPURL,"download":"remoteSDP.txt"},slot:"content"},[_vm._v("remoteSDP")])]):_vm._e(),(_vm.localSDP)?_c('mu-badge',[_c('a',{attrs:{"slot":"content","href":_vm.localSDPURL,"download":"localSDP.txt"},slot:"content"},[_vm._v("localSDP")])]):_vm._e()],1)])}
-var Playervue_type_template_id_6aea3512_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"0b526416-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/Player.vue?vue&type=template&id=66d7d764&
+var Playervue_type_template_id_66d7d764_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('Modal',_vm._g(_vm._b({attrs:{"draggable":"","title":_vm.streamPath},on:{"on-ok":_vm.onClosePreview,"on-cancel":_vm.onClosePreview}},'Modal',_vm.$attrs,false),_vm.$listeners),[_c('video',{ref:"webrtc",attrs:{"width":"488","height":"275","autoplay":"","muted":"","controls":""},domProps:{"srcObject":_vm.stream,"muted":true}}),_c('div',{attrs:{"slot":"footer"},slot:"footer"},[(_vm.remoteSDP)?_c('mu-badge',[_c('a',{attrs:{"slot":"content","href":_vm.remoteSDPURL,"download":"remoteSDP.txt"},slot:"content"},[_vm._v("remoteSDP")])]):_vm._e(),(_vm.localSDP)?_c('mu-badge',[_c('a',{attrs:{"slot":"content","href":_vm.localSDPURL,"download":"localSDP.txt"},slot:"content"},[_vm._v("localSDP")])]):_vm._e()],1)])}
+var Playervue_type_template_id_66d7d764_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/Player.vue?vue&type=template&id=6aea3512&
+// CONCATENATED MODULE: ./src/components/Player.vue?vue&type=template&id=66d7d764&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/Player.vue?vue&type=script&lang=js&
 //
@@ -276,6 +276,9 @@ let pc = null;
     methods: {
         async play(streamPath) {
             pc = new RTCPeerConnection();
+            pc.addTransceiver('video',{
+              direction:'recvonly'
+            })
             this.streamPath = streamPath;
             pc.onsignalingstatechange = e => {
                 //console.log(e);
@@ -287,8 +290,21 @@ let pc = null;
             pc.onicecandidate = event => {
                 console.log(event)
             };
-            let result = await this.ajax({
-                url: "/webrtc/preparePlay?streamPath=" + this.streamPath,
+            pc.ontrack = event => {
+               // console.log(event);
+                if (event.track.kind == "video")
+                    this.stream = event.streams[0];
+            };
+            await pc.setLocalDescription(await pc.createOffer());
+            this.localSDP = pc.localDescription.sdp;
+            this.localSDPURL = URL.createObjectURL(
+                new Blob([this.localSDP], { type: "text/plain" })
+            );
+            const result = await this.ajax({
+                type: "POST",
+                processData: false,
+                data: JSON.stringify(pc.localDescription.toJSON()),
+                url: "/webrtc/play?streamPath=" + this.streamPath,
                 dataType: "json"
             });
             if (result.errmsg) {
@@ -298,26 +314,7 @@ let pc = null;
                 this.remoteSDP = result.sdp;
                 this.remoteSDPURL = URL.createObjectURL(new Blob([this.remoteSDP], { type: "text/plain" }));
             }
-            pc.ontrack = event => {
-               // console.log(event);
-                if (event.track.kind == "video")
-                    this.stream = event.streams[0];
-            };
             await pc.setRemoteDescription(new RTCSessionDescription(result));
-            await pc.setLocalDescription(await pc.createAnswer());
-            this.localSDP = pc.localDescription.sdp;
-            this.localSDPURL = URL.createObjectURL(
-                new Blob([this.localSDP], { type: "text/plain" })
-            );
-            result = await this.ajax({
-                type: "POST",
-                processData: false,
-                data: JSON.stringify(pc.localDescription.toJSON()),
-                url: "/webrtc/play?streamPath=" + this.streamPath,
-            });
-            if (result != "success") {
-                this.$toast.error(result);
-            }
         },
         onClosePreview() {
             pc.close();
@@ -437,8 +434,8 @@ function normalizeComponent (
 
 var component = normalizeComponent(
   components_Playervue_type_script_lang_js_,
-  Playervue_type_template_id_6aea3512_render,
-  Playervue_type_template_id_6aea3512_staticRenderFns,
+  Playervue_type_template_id_66d7d764_render,
+  Playervue_type_template_id_66d7d764_staticRenderFns,
   false,
   null,
   null,

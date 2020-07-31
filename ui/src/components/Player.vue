@@ -36,6 +36,9 @@ export default {
     methods: {
         async play(streamPath) {
             pc = new RTCPeerConnection();
+            pc.addTransceiver('video',{
+              direction:'recvonly'
+            })
             this.streamPath = streamPath;
             pc.onsignalingstatechange = e => {
                 //console.log(e);
@@ -47,8 +50,21 @@ export default {
             pc.onicecandidate = event => {
                 console.log(event)
             };
-            let result = await this.ajax({
-                url: "/webrtc/preparePlay?streamPath=" + this.streamPath,
+            pc.ontrack = event => {
+               // console.log(event);
+                if (event.track.kind == "video")
+                    this.stream = event.streams[0];
+            };
+            await pc.setLocalDescription(await pc.createOffer());
+            this.localSDP = pc.localDescription.sdp;
+            this.localSDPURL = URL.createObjectURL(
+                new Blob([this.localSDP], { type: "text/plain" })
+            );
+            const result = await this.ajax({
+                type: "POST",
+                processData: false,
+                data: JSON.stringify(pc.localDescription.toJSON()),
+                url: "/webrtc/play?streamPath=" + this.streamPath,
                 dataType: "json"
             });
             if (result.errmsg) {
@@ -58,26 +74,7 @@ export default {
                 this.remoteSDP = result.sdp;
                 this.remoteSDPURL = URL.createObjectURL(new Blob([this.remoteSDP], { type: "text/plain" }));
             }
-            pc.ontrack = event => {
-               // console.log(event);
-                if (event.track.kind == "video")
-                    this.stream = event.streams[0];
-            };
             await pc.setRemoteDescription(new RTCSessionDescription(result));
-            await pc.setLocalDescription(await pc.createAnswer());
-            this.localSDP = pc.localDescription.sdp;
-            this.localSDPURL = URL.createObjectURL(
-                new Blob([this.localSDP], { type: "text/plain" })
-            );
-            result = await this.ajax({
-                type: "POST",
-                processData: false,
-                data: JSON.stringify(pc.localDescription.toJSON()),
-                url: "/webrtc/play?streamPath=" + this.streamPath,
-            });
-            if (result != "success") {
-                this.$toast.error(result);
-            }
         },
         onClosePreview() {
             pc.close();
