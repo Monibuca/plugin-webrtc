@@ -258,15 +258,15 @@ func run() {
 		if err = json.Unmarshal(bytes, &offer); err != nil {
 			return
 		}
-		// pli := "42001f"
-		// if stream := FindStream(streamPath); stream != nil {
-		// 	pli = fmt.Sprintf("%x", stream.SPS[1:4])
-		// }
+		pli := "42001f"
+		if stream := FindStream(streamPath); stream != nil {
+			pli = fmt.Sprintf("%x", stream.SPS[1:4])
+		}
 		rtc.m.RegisterCodec(NewRTPCodec(RTPCodecTypeVideo,
 			H264,
 			90000,
 			0,
-			"level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f",
+			"level-asymmetry-allowed=1;packetization-mode=1;profile-level-id="+pli[:2]+"001f",
 			DefaultPayloadTypeH264,
 			&rtc.payloader))
 		//m.RegisterCodec(NewRTPPCMUCodec(DefaultPayloadTypePCMU, 8000))
@@ -296,7 +296,7 @@ func run() {
 		if err = rtc.SetRemoteDescription(offer); err != nil {
 			return
 		}
-		rtc.m.PopulateFromSDP(offer)
+		// rtc.m.PopulateFromSDP(offer)
 		// var vpayloadType uint8 = 0
 
 		// for _, videoCodec := range rtc.m.GetCodecsByKind(RTPCodecTypeVideo) {
@@ -304,9 +304,10 @@ func run() {
 		// 		vpayloadType = videoCodec.PayloadType
 		// 		videoCodec.Payloader = &rtc.payloader
 		// 		Printf("H264 fmtp %v", videoCodec.SDPFmtpLine)
-		// 		break
+
 		// 	}
 		// }
+		// println(vpayloadType)
 		if rtc.videoTrack, err = rtc.NewTrack(DefaultPayloadTypeH264, 8, "video", "monibuca"); err != nil {
 			return
 		}
