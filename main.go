@@ -240,6 +240,15 @@ func (rtc *WebRTC) GetAnswer() ([]byte, error) {
 
 func run() {
 	http.HandleFunc("/webrtc/play", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		origin := r.Header["Origin"]
+		if len(origin) == 0 {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", origin[0])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
 		streamPath := r.URL.Query().Get("streamPath")
 		var offer SessionDescription
 		var rtc WebRTC
