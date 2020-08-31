@@ -140,6 +140,7 @@ func (rtc *WebRTC) Play(streamPath string) bool {
 		switch connectionState {
 		case ICEConnectionStateDisconnected:
 			sub.Close()
+			rtc.Close()
 		case ICEConnectionStateConnected:
 
 			//rtc.videoTrack = rtc.GetSenders()[0].Track()
