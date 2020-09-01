@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -12,12 +14,15 @@ import (
 	"github.com/Monibuca/engine/v2/avformat"
 	. "github.com/Monibuca/plugin-rtp"
 	"github.com/pion/rtcp"
+	"github.com/pion/turn"
 	. "github.com/pion/webrtc/v2"
 	"github.com/pion/webrtc/v2/pkg/media"
 )
 
 var config struct {
 	ICEServers []string
+	PublicIP   string
+	ListenAddr string
 }
 
 // }{[]string{
@@ -240,6 +245,31 @@ func (rtc *WebRTC) GetAnswer() ([]byte, error) {
 }
 
 func run() {
+	udpListener, err := net.ListenPacket("udp4", config.ListenAddr)
+	if err != nil {
+		log.Panicf("Failed to create TURN server listener: %s", err)
+	}
+	if _, err := turn.NewServer(turn.ServerConfig{
+		Realm: "monibuca",
+		// Set AuthHandler callback
+		// This is called everytime a user tries to authenticate with the TURN server
+		// Return the key for that user, or false when no user is found
+		AuthHandler: func(username string, realm string, srcAddr net.Addr) ([]byte, bool) {
+			return []byte("monibuca"), true
+		},
+		// PacketConnConfigs is a list of UDP Listeners and the configuration around them
+		PacketConnConfigs: []turn.PacketConnConfig{
+			{
+				PacketConn: udpListener,
+				RelayAddressGenerator: &turn.RelayAddressGeneratorStatic{
+					RelayAddress: net.ParseIP(config.PublicIP), // Claim that we are listening on IP passed by user (This should be your Public IP)
+					Address:      "0.0.0.0",                    // But actually be listening on every interface
+				},
+			},
+		},
+	}); err != nil {
+		log.Fatal(err)
+	}
 	http.HandleFunc("/webrtc/play", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		origin := r.Header["Origin"]

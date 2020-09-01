@@ -20,7 +20,7 @@
         </stream-table>
         <pre v-else-if="$parent.titleTabActive == 2">{{localSDP}}</pre>
         <pre v-else-if="$parent.titleTabActive == 3">{{remoteSDP}}</pre>
-        <webrtc-player ref="player" v-model="previewStreamPath"></webrtc-player>
+        <webrtc-player ref="player" v-model="previewStreamPath" :PublicIP="PublicIP"></webrtc-player>
     </div>
 </template>
 
@@ -33,6 +33,9 @@ var streamPath = "live/rtc";
 export default {
     components:{
         WebrtcPlayer
+    },
+    props:{
+      PublicIP:String
     },
     data() {
         return {

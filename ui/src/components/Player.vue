@@ -32,10 +32,12 @@ export default {
       streamPath: ""
     };
   },
-
+props:{
+  PublicIP:String
+},
     methods: {
         async play(streamPath) {
-            pc = new RTCPeerConnection();
+            pc = new RTCPeerConnection({iceServers:["turn:"+this.PublicIP]});
             pc.addTransceiver('video',{
               direction:'recvonly'
             })
