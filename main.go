@@ -3,10 +3,7 @@ package webrtc
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pion/turn/v2"
 	"io/ioutil"
-	"log"
-	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -22,7 +19,6 @@ import (
 var config struct {
 	ICEServers []string
 	PublicIP   string
-	ListenAddr string
 }
 
 // }{[]string{
@@ -88,6 +84,7 @@ type WebRTC struct {
 	RemoteAddr string
 	videoTrack *Track
 	m          MediaEngine
+	s          SettingEngine
 	api        *API
 	payloader  avformat.H264
 	// codecs.H264Packet
@@ -163,7 +160,8 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 		DefaultPayloadTypeH264,
 		new(avformat.H264)))
 	//m.RegisterCodec(NewRTPPCMUCodec(DefaultPayloadTypePCMU, 8000))
-	rtc.api = NewAPI(WithMediaEngine(rtc.m))
+	rtc.s.SetNAT1To1IPs([]string{config.PublicIP}, ICECandidateTypeHost)
+	rtc.api = NewAPI(WithMediaEngine(rtc.m), WithSettingEngine(rtc.s))
 	peerConnection, err := rtc.api.NewPeerConnection(Configuration{
 		ICEServers: []ICEServer{
 			{
@@ -245,31 +243,6 @@ func (rtc *WebRTC) GetAnswer() ([]byte, error) {
 }
 
 func run() {
-	udpListener, err := net.ListenPacket("udp4", config.ListenAddr)
-	if err != nil {
-		log.Panicf("Failed to create TURN server listener: %s", err)
-	}
-	if _, err := turn.NewServer(turn.ServerConfig{
-		Realm: "monibuca",
-		// Set AuthHandler callback
-		// This is called everytime a user tries to authenticate with the TURN server
-		// Return the key for that user, or false when no user is found
-		AuthHandler: func(username string, realm string, srcAddr net.Addr) ([]byte, bool) {
-			return []byte("monibuca"), true
-		},
-		// PacketConnConfigs is a list of UDP Listeners and the configuration around them
-		PacketConnConfigs: []turn.PacketConnConfig{
-			{
-				PacketConn: udpListener,
-				RelayAddressGenerator: &turn.RelayAddressGeneratorStatic{
-					RelayAddress: net.ParseIP(config.PublicIP), // Claim that we are listening on IP passed by user (This should be your Public IP)
-					Address:      "0.0.0.0",                    // But actually be listening on every interface
-				},
-			},
-		},
-	}); err != nil {
-		log.Fatal(err)
-	}
 	http.HandleFunc("/webrtc/play", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		origin := r.Header["Origin"]
@@ -310,7 +283,8 @@ func run() {
 			DefaultPayloadTypeH264,
 			&rtc.payloader))
 		//m.RegisterCodec(NewRTPPCMUCodec(DefaultPayloadTypePCMU, 8000))
-		rtc.api = NewAPI(WithMediaEngine(rtc.m))
+		rtc.s.SetNAT1To1IPs([]string{config.PublicIP}, ICECandidateTypeHost)
+		rtc.api = NewAPI(WithMediaEngine(rtc.m), WithSettingEngine(rtc.s))
 		peerConnection, err := rtc.api.NewPeerConnection(Configuration{
 			// ICEServers: []ICEServer{
 			// 	{
