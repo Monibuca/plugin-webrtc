@@ -37,7 +37,7 @@ props:{
 },
     methods: {
         async play(streamPath) {
-            pc = new RTCPeerConnection({iceServers:["turn:"+this.PublicIP]});
+            pc = new RTCPeerConnection({iceServers:[{urls:"turn:"+this.PublicIP}]});
             pc.addTransceiver('video',{
               direction:'recvonly'
             })
