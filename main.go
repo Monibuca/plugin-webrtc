@@ -3,7 +3,7 @@ package webrtc
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pion/turn"
+	"github.com/pion/turn/v2"
 	"io/ioutil"
 	"log"
 	"net"
