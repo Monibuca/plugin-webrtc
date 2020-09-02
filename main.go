@@ -14,7 +14,7 @@ import (
 	"github.com/Monibuca/engine/v2/avformat"
 	. "github.com/Monibuca/plugin-rtp"
 	"github.com/pion/rtcp"
-	"github.com/pion/turn"
+	"github.com/pion/turn/v2"
 	. "github.com/pion/webrtc/v2"
 	"github.com/pion/webrtc/v2/pkg/media"
 )
