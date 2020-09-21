@@ -82,6 +82,7 @@ type WebRTC struct {
 	RTP
 	*PeerConnection
 	RemoteAddr string
+	audioTrack *Track
 	videoTrack *Track
 	m          MediaEngine
 	s          SettingEngine
@@ -95,9 +96,18 @@ func (rtc *WebRTC) Play(streamPath string) bool {
 	var sub Subscriber
 	sub.ID = rtc.RemoteAddr
 	sub.Type = "WebRTC"
-	var lastTimeStamp uint32
+	var lastTimeStampV, lastTiimeStampA uint32
 	sub.OnData = func(packet *avformat.SendPacket) error {
 		if packet.Type == avformat.FLV_TAG_TYPE_AUDIO {
+			var s uint32
+			if lastTiimeStampA > 0 {
+				s = packet.Timestamp - lastTiimeStampA
+			}
+			lastTiimeStampA = packet.Timestamp
+			rtc.audioTrack.WriteSample(media.Sample{
+				Data:    packet.Payload[1:],
+				Samples: s * 8,
+			})
 			return nil
 		}
 		if packet.IsSequence {
@@ -105,10 +115,10 @@ func (rtc *WebRTC) Play(streamPath string) bool {
 			rtc.payloader.SPS = sub.SPS
 		} else {
 			var s uint32
-			if lastTimeStamp > 0 {
-				s = packet.Timestamp - lastTimeStamp
+			if lastTimeStampV > 0 {
+				s = packet.Timestamp - lastTimeStampV
 			}
-			lastTimeStamp = packet.Timestamp
+			lastTimeStampV = packet.Timestamp
 			rtc.videoTrack.WriteSample(media.Sample{
 				Data:    packet.Payload,
 				Samples: s * 90,
@@ -282,7 +292,7 @@ func run() {
 			"level-asymmetry-allowed=1;packetization-mode=1;profile-level-id="+pli[:2]+"001f",
 			DefaultPayloadTypeH264,
 			&rtc.payloader))
-		//m.RegisterCodec(NewRTPPCMUCodec(DefaultPayloadTypePCMU, 8000))
+		rtc.m.RegisterCodec(NewRTPPCMACodec(DefaultPayloadTypePCMA, 8000))
 		rtc.s.SetNAT1To1IPs([]string{config.PublicIP}, ICECandidateTypeHost)
 		rtc.api = NewAPI(WithMediaEngine(rtc.m), WithSettingEngine(rtc.s))
 		peerConnection, err := rtc.api.NewPeerConnection(Configuration{
@@ -323,6 +333,9 @@ func run() {
 		// }
 		// println(vpayloadType)
 		if rtc.videoTrack, err = rtc.NewTrack(DefaultPayloadTypeH264, 8, "video", "monibuca"); err != nil {
+			return
+		}
+		if rtc.audioTrack, err = rtc.NewTrack(DefaultPayloadTypePCMA, 9, "audio", "monibuca"); err != nil {
 			return
 		}
 		if _, err = rtc.AddTrack(rtc.videoTrack); err != nil {
