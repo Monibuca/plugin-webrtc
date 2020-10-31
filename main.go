@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -49,6 +51,7 @@ var config struct {
 // }
 
 var playWaitList WaitList
+var reg_level = regexp.MustCompile("profile-level-id=(4.+f)")
 
 type WaitList struct {
 	m map[string]*WebRTC
@@ -281,15 +284,19 @@ func run() {
 		if err = json.Unmarshal(bytes, &offer); err != nil {
 			return
 		}
+
 		pli := "42001f"
 		if stream := FindStream(streamPath); stream != nil {
 			pli = fmt.Sprintf("%x", stream.SPS[1:4])
+		}
+		if !strings.Contains(offer.SDP, pli) {
+			pli = reg_level.FindAllStringSubmatch(offer.SDP, -1)[0][1]
 		}
 		rtc.m.RegisterCodec(NewRTPCodec(RTPCodecTypeVideo,
 			H264,
 			90000,
 			0,
-			"level-asymmetry-allowed=1;packetization-mode=1;profile-level-id="+pli[:2]+"001f",
+			"level-asymmetry-allowed=1;packetization-mode=1;profile-level-id="+pli,
 			DefaultPayloadTypeH264,
 			&rtc.payloader))
 		rtc.m.RegisterCodec(NewRTPPCMACodec(DefaultPayloadTypePCMA, 8000))
