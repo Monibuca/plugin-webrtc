@@ -20,7 +20,7 @@ import (
 
 var config struct {
 	ICEServers []string
-	PublicIP   string
+	PublicIP   []string
 }
 
 // }{[]string{
@@ -173,7 +173,7 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 		DefaultPayloadTypeH264,
 		new(avformat.H264)))
 	//m.RegisterCodec(NewRTPPCMUCodec(DefaultPayloadTypePCMU, 8000))
-	rtc.s.SetNAT1To1IPs([]string{config.PublicIP}, ICECandidateTypeHost)
+	rtc.s.SetNAT1To1IPs(config.PublicIP, ICECandidateTypeHost)
 	rtc.api = NewAPI(WithMediaEngine(rtc.m), WithSettingEngine(rtc.s))
 	peerConnection, err := rtc.api.NewPeerConnection(Configuration{
 		ICEServers: []ICEServer{
@@ -300,7 +300,7 @@ func run() {
 			DefaultPayloadTypeH264,
 			&rtc.payloader))
 		rtc.m.RegisterCodec(NewRTPPCMACodec(DefaultPayloadTypePCMA, 8000))
-		rtc.s.SetNAT1To1IPs([]string{config.PublicIP}, ICECandidateTypeHost)
+		rtc.s.SetNAT1To1IPs(config.PublicIP, ICECandidateTypeHost)
 		rtc.api = NewAPI(WithMediaEngine(rtc.m), WithSettingEngine(rtc.s))
 		peerConnection, err := rtc.api.NewPeerConnection(Configuration{
 			// ICEServers: []ICEServer{
