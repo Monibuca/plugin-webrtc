@@ -21,6 +21,8 @@ import (
 var config struct {
 	ICEServers []string
 	PublicIP   []string
+	PortMin    uint16
+	PortMax    uint16
 }
 
 // }{[]string{
@@ -176,6 +178,9 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 	if !strings.HasPrefix(rtc.RemoteAddr, "127.0.0.1") && !strings.HasPrefix(rtc.RemoteAddr, "[::1]") {
 		rtc.s.SetNAT1To1IPs(config.PublicIP, ICECandidateTypeHost)
 	}
+	if config.PortMin > 0 && config.PortMax > 0 {
+		rtc.s.SetEphemeralUDPPortRange(config.PortMin, config.PortMax)
+	}
 	rtc.api = NewAPI(WithMediaEngine(rtc.m), WithSettingEngine(rtc.s))
 	peerConnection, err := rtc.api.NewPeerConnection(Configuration{
 		ICEServers: []ICEServer{
@@ -271,6 +276,7 @@ func run() {
 		streamPath := r.URL.Query().Get("streamPath")
 		var offer SessionDescription
 		var rtc WebRTC
+
 		bytes, err := ioutil.ReadAll(r.Body)
 		defer func() {
 			if err != nil {
@@ -304,6 +310,9 @@ func run() {
 		rtc.m.RegisterCodec(NewRTPPCMACodec(DefaultPayloadTypePCMA, 8000))
 		if !strings.HasPrefix(r.RemoteAddr, "127.0.0.1") && !strings.HasPrefix(r.RemoteAddr, "[::1]") {
 			rtc.s.SetNAT1To1IPs(config.PublicIP, ICECandidateTypeHost)
+		}
+		if config.PortMin > 0 && config.PortMax > 0 {
+			rtc.s.SetEphemeralUDPPortRange(config.PortMin, config.PortMax)
 		}
 		rtc.api = NewAPI(WithMediaEngine(rtc.m), WithSettingEngine(rtc.s))
 		peerConnection, err := rtc.api.NewPeerConnection(Configuration{
