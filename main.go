@@ -173,7 +173,9 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 		DefaultPayloadTypeH264,
 		new(avformat.H264)))
 	//m.RegisterCodec(NewRTPPCMUCodec(DefaultPayloadTypePCMU, 8000))
-	rtc.s.SetNAT1To1IPs(config.PublicIP, ICECandidateTypeHost)
+	if !strings.HasPrefix(rtc.RemoteAddr, "127.0.0.1") && !strings.HasPrefix(rtc.RemoteAddr, "[::1]") {
+		rtc.s.SetNAT1To1IPs(config.PublicIP, ICECandidateTypeHost)
+	}
 	rtc.api = NewAPI(WithMediaEngine(rtc.m), WithSettingEngine(rtc.s))
 	peerConnection, err := rtc.api.NewPeerConnection(Configuration{
 		ICEServers: []ICEServer{
@@ -300,7 +302,9 @@ func run() {
 			DefaultPayloadTypeH264,
 			&rtc.payloader))
 		rtc.m.RegisterCodec(NewRTPPCMACodec(DefaultPayloadTypePCMA, 8000))
-		rtc.s.SetNAT1To1IPs(config.PublicIP, ICECandidateTypeHost)
+		if !strings.HasPrefix(r.RemoteAddr, "127.0.0.1") && !strings.HasPrefix(r.RemoteAddr, "[::1]") {
+			rtc.s.SetNAT1To1IPs(config.PublicIP, ICECandidateTypeHost)
+		}
 		rtc.api = NewAPI(WithMediaEngine(rtc.m), WithSettingEngine(rtc.s))
 		peerConnection, err := rtc.api.NewPeerConnection(Configuration{
 			// ICEServers: []ICEServer{
