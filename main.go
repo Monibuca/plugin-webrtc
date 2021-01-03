@@ -315,14 +315,13 @@ func run() {
 			rtc.s.SetEphemeralUDPPortRange(config.PortMin, config.PortMax)
 		}
 		rtc.api = NewAPI(WithMediaEngine(rtc.m), WithSettingEngine(rtc.s))
-		peerConnection, err := rtc.api.NewPeerConnection(Configuration{
+		rtc.PeerConnection, err = rtc.api.NewPeerConnection(Configuration{
 			// ICEServers: []ICEServer{
 			// 	{
 			// 		URLs: config.ICEServers,
 			// 	},
 			// },
 		})
-		rtc.PeerConnection = peerConnection
 		rtc.OnICECandidate(func(ice *ICECandidate) {
 			if ice != nil {
 				Println(ice.ToJSON().Candidate)
