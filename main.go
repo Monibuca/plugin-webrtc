@@ -189,6 +189,10 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 			},
 		},
 	})
+	if err != nil {
+		Println(err)
+		return false
+	}
 	if _, err = peerConnection.AddTransceiverFromKind(RTPCodecTypeVideo); err != nil {
 		if err != nil {
 			Println(err)
@@ -315,13 +319,16 @@ func run() {
 			rtc.s.SetEphemeralUDPPortRange(config.PortMin, config.PortMax)
 		}
 		rtc.api = NewAPI(WithMediaEngine(rtc.m), WithSettingEngine(rtc.s))
-		rtc.PeerConnection, err = rtc.api.NewPeerConnection(Configuration{
+
+		if rtc.PeerConnection, err = rtc.api.NewPeerConnection(Configuration{
 			// ICEServers: []ICEServer{
 			// 	{
 			// 		URLs: config.ICEServers,
 			// 	},
 			// },
-		})
+		}); err != nil {
+			return
+		}
 		rtc.OnICECandidate(func(ice *ICECandidate) {
 			if ice != nil {
 				Println(ice.ToJSON().Candidate)
@@ -332,9 +339,6 @@ func run() {
 		// } else {
 		// 	Println(err)
 		// }
-		if err != nil {
-			return
-		}
 		rtc.RemoteAddr = r.RemoteAddr
 		if err = rtc.SetRemoteDescription(offer); err != nil {
 			return
