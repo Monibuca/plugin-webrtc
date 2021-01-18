@@ -299,6 +299,7 @@ func run() {
 
 		pli := "42001f"
 		if stream := FindStream(streamPath); stream != nil {
+			<-stream.WaitPub
 			pli = fmt.Sprintf("%x", stream.SPS[1:4])
 		}
 		if !strings.Contains(offer.SDP, pli) {
