@@ -293,7 +293,7 @@ func run() {
 
 		pli := "42001f"
 		if stream := engine.FindStream(streamPath); stream != nil {
-			<-stream.WaitPub
+			<-stream.VideoTracks[0].WaitFirst
 			pli = fmt.Sprintf("%x", stream.VideoTracks[0].SPS[1:4])
 		}
 		if !strings.Contains(offer.SDP, pli) {
