@@ -88,62 +88,8 @@ func init() {
 type WebRTC struct {
 	engine.Publisher
 	*PeerConnection
-	RemoteAddr string
-	audioTrack *TrackLocalStaticSample
-	videoTrack *TrackLocalStaticSample
 }
 
-func (rtc *WebRTC) Play(streamPath string) bool {
-	var sub engine.Subscriber
-	sub.ID = rtc.RemoteAddr
-	sub.Type = "WebRTC"
-	var lastTimeStampV, lastTiimeStampA uint32
-	onVideo := func(pack engine.VideoPack) {
-		var s uint32
-		if lastTimeStampV > 0 {
-			s = pack.Timestamp - lastTimeStampV
-		}
-		lastTimeStampV = pack.Timestamp
-		if pack.NalType == codec.NALU_IDR_Picture {
-			rtc.videoTrack.WriteSample(media.Sample{
-				Data: sub.VideoTracks[0].SPS,
-			})
-			rtc.videoTrack.WriteSample(media.Sample{
-				Data: sub.VideoTracks[0].PPS,
-			})
-		}
-		rtc.videoTrack.WriteSample(media.Sample{
-			Data:     pack.Payload,
-			Duration: time.Millisecond * time.Duration(s),
-		})
-	}
-	onAudio := func(pack engine.AudioPack) {
-		var s uint32
-		if lastTiimeStampA > 0 {
-			s = pack.Timestamp - lastTiimeStampA
-		}
-		lastTiimeStampA = pack.Timestamp
-		rtc.audioTrack.WriteSample(media.Sample{
-			Data: pack.Payload, Duration: time.Millisecond * time.Duration(s),
-		})
-	}
-	rtc.OnICEConnectionStateChange(func(connectionState ICEConnectionState) {
-		utils.Printf("%s Connection State has changed %s ", streamPath, connectionState.String())
-		switch connectionState {
-		case ICEConnectionStateDisconnected, ICEConnectionStateFailed:
-			sub.Close()
-			rtc.PeerConnection.Close()
-		case ICEConnectionStateConnected:
-			if err := sub.Subscribe(streamPath); err == nil {
-				go sub.VideoTracks[0].Play(sub.Context, onVideo)
-				if rtc.audioTrack != nil {
-					go sub.AudioTracks[0].Play(sub.Context, onAudio)
-				}
-			}
-		}
-	})
-	return true
-}
 func (rtc *WebRTC) Publish(streamPath string) bool {
 	// rtc.m.RegisterCodec(NewRTPCodec(RTPCodecTypeVideo,
 	// 	H264,
@@ -211,9 +157,10 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 			}()
 			var etrack engine.Track
 			if track.Kind() == RTPCodecTypeAudio {
-				etrack = rtc.AudioTracks[0]
+				//TODO: 判断音频格式
+				etrack = rtc.AudioTracks["pcma"]
 			} else {
-				etrack = rtc.VideoTracks[0]
+				etrack = rtc.VideoTracks["h264"]
 			}
 			var pack rtp.Packet
 			b := make([]byte, 1460)
@@ -262,19 +209,15 @@ func run() {
 	m.RegisterDefaultCodecs()
 	api = NewAPI(WithMediaEngine(&m), WithSettingEngine(s))
 	http.HandleFunc("/webrtc/play", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		origin := r.Header["Origin"]
-		if len(origin) == 0 {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-		} else {
-			w.Header().Set("Access-Control-Allow-Origin", origin[0])
-		}
-
+		utils.CORS(w, r)
 		w.Header().Set("Content-Type", "application/json")
 		streamPath := r.URL.Query().Get("streamPath")
 		var offer SessionDescription
 		var rtc WebRTC
-
+		sub := engine.Subscriber{
+			ID:   r.RemoteAddr,
+			Type: "WebRTC",
+		}
 		bytes, err := ioutil.ReadAll(r.Body)
 		defer func() {
 			if err != nil {
@@ -282,7 +225,6 @@ func run() {
 				fmt.Fprintf(w, `{"errmsg":"%s"}`, err)
 				return
 			}
-			rtc.Play(streamPath)
 		}()
 		if err != nil {
 			return
@@ -291,13 +233,8 @@ func run() {
 			return
 		}
 
-		pli := "42001f"
-		if stream := engine.FindStream(streamPath); stream != nil {
-			<-stream.VideoTracks[0].WaitFirst
-			pli = fmt.Sprintf("%x", stream.VideoTracks[0].SPS[1:4])
-		}
-		if !strings.Contains(offer.SDP, pli) {
-			pli = reg_level.FindAllStringSubmatch(offer.SDP, -1)[0][1]
+		if err = sub.Subscribe(streamPath); err != nil {
+			return
 		}
 
 		if rtc.PeerConnection, err = api.NewPeerConnection(Configuration{}); err != nil {
@@ -308,18 +245,87 @@ func run() {
 				utils.Println(ice.ToJSON().Candidate)
 			}
 		})
-		rtc.RemoteAddr = r.RemoteAddr
 		if err = rtc.SetRemoteDescription(offer); err != nil {
 			return
 		}
-		if rtc.videoTrack, err = NewTrackLocalStaticSample(RTPCodecCapability{MimeType: "video/h264", SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", "m7s"); err != nil {
-			return
+		vt := sub.GetVideoTrack("h264")
+		if vt != nil {
+			pli := "42001f"
+			pli = fmt.Sprintf("%x", vt.SPS[1:4])
+			if !strings.Contains(offer.SDP, pli) {
+				pli = reg_level.FindAllStringSubmatch(offer.SDP, -1)[0][1]
+			}
+			var videoTrack *TrackLocalStaticSample
+			if videoTrack, err = NewTrackLocalStaticSample(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", "m7s"); err != nil {
+				return
+			}
+			if _, err = rtc.AddTrack(videoTrack); err != nil {
+				return
+			}
+			var lastTimeStampV uint32
+			sub.OnVideo = func(pack engine.VideoPack) {
+				var s uint32
+				if lastTimeStampV > 0 {
+					s = pack.Timestamp - lastTimeStampV
+				}
+				lastTimeStampV = pack.Timestamp
+				if pack.NalType == codec.NALU_IDR_Picture {
+					videoTrack.WriteSample(media.Sample{
+						Data: vt.SPS,
+					})
+					videoTrack.WriteSample(media.Sample{
+						Data: vt.PPS,
+					})
+				}
+				videoTrack.WriteSample(media.Sample{
+					Data:     pack.Payload,
+					Duration: time.Millisecond * time.Duration(s),
+				})
+			}
 		}
-		if _, err = rtc.AddTrack(rtc.videoTrack); err != nil {
-			return
+		at := sub.GetAudioTrack("pcma", "pcmu")
+		if at != nil {
+			var audioTrack *TrackLocalStaticSample
+			audioMimeType := MimeTypePCMA
+			if at.SoundFormat == 8 {
+				audioMimeType = MimeTypePCMU
+			}
+			if audioTrack, err = NewTrackLocalStaticSample(RTPCodecCapability{audioMimeType, 8000, 0, "", nil}, "audio", "m7s"); err != nil {
+				return
+			}
+			if _, err = rtc.AddTrack(audioTrack); err != nil {
+				return
+			}
+			var lastTimeStampA uint32
+			sub.OnAudio = func(pack engine.AudioPack) {
+				var s uint32
+				if lastTimeStampA > 0 {
+					s = pack.Timestamp - lastTimeStampA
+				}
+				lastTimeStampA = pack.Timestamp
+				audioTrack.WriteSample(media.Sample{
+					Data: pack.Payload, Duration: time.Millisecond * time.Duration(s),
+				})
+			}
 		}
+
 		if bytes, err := rtc.GetAnswer(); err == nil {
 			w.Write(bytes)
+			rtc.OnICEConnectionStateChange(func(connectionState ICEConnectionState) {
+				utils.Printf("%s Connection State has changed %s ", streamPath, connectionState.String())
+				switch connectionState {
+				case ICEConnectionStateDisconnected, ICEConnectionStateFailed:
+					sub.Close()
+					rtc.PeerConnection.Close()
+				case ICEConnectionStateConnected:
+					if at != nil {
+						go sub.PlayAudio(sub.Context, at)
+					}
+					if vt != nil {
+						go sub.PlayVideo(sub.Context, vt)
+					}
+				}
+			})
 		} else {
 			return
 		}
@@ -335,7 +341,6 @@ func run() {
 			return
 		}
 		rtc := new(WebRTC)
-		rtc.RemoteAddr = r.RemoteAddr
 		if rtc.Publish(streamPath) {
 			if err := rtc.SetRemoteDescription(offer); err != nil {
 				utils.Println(err)
