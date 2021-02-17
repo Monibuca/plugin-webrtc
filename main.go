@@ -158,9 +158,15 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 			var etrack engine.Track
 			if track.Kind() == RTPCodecTypeAudio {
 				//TODO: 判断音频格式
-				etrack = rtc.AudioTracks["pcma"]
+				at := engine.NewAudioTrack()
+				at.SoundFormat = 7
+				rtc.SetOriginAT(at)
+				etrack = at
 			} else {
-				etrack = rtc.VideoTracks["h264"]
+				vt := engine.NewVideoTrack()
+				vt.CodecID = 7
+				rtc.SetOriginVT(vt)
+				etrack = vt
 			}
 			var pack rtp.Packet
 			b := make([]byte, 1460)
@@ -319,10 +325,10 @@ func run() {
 					rtc.PeerConnection.Close()
 				case ICEConnectionStateConnected:
 					if at != nil {
-						go sub.PlayAudio(sub.Context, at)
+						go sub.PlayAudio(at)
 					}
 					if vt != nil {
-						go sub.PlayVideo(sub.Context, vt)
+						go sub.PlayVideo(vt)
 					}
 				}
 			})
