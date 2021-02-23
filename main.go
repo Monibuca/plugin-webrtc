@@ -156,12 +156,25 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 				}
 			}()
 			var etrack engine.Track
+			codec := track.Codec()
 			if track.Kind() == RTPCodecTypeAudio {
-				//TODO: 判断音频格式
-				at := engine.NewAudioTrack()
-				at.SoundFormat = 7
-				rtc.SetOriginAT(at)
-				etrack = at
+				switch codec.MimeType {
+				case MimeTypePCMA:
+					at := engine.NewAudioTrack()
+					at.SoundFormat = 7
+					at.SoundType = byte(codec.Channels) - 1
+					rtc.SetOriginAT(at)
+					etrack = at
+				case MimeTypePCMU:
+					at := engine.NewAudioTrack()
+					at.SoundFormat = 8
+					at.SoundType = byte(codec.Channels) - 1
+					rtc.SetOriginAT(at)
+					etrack = at
+				default:
+					return
+				}
+
 			} else {
 				vt := engine.NewVideoTrack()
 				vt.CodecID = 7
@@ -214,7 +227,7 @@ func run() {
 	}
 	m.RegisterDefaultCodecs()
 	api = NewAPI(WithMediaEngine(&m), WithSettingEngine(s))
-	http.HandleFunc("/webrtc/play", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/webrtc/play", func(w http.ResponseWriter, r *http.Request) {
 		utils.CORS(w, r)
 		w.Header().Set("Content-Type", "application/json")
 		streamPath := r.URL.Query().Get("streamPath")
@@ -337,7 +350,7 @@ func run() {
 		}
 	})
 
-	http.HandleFunc("/webrtc/publish", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/webrtc/publish", func(w http.ResponseWriter, r *http.Request) {
 		streamPath := r.URL.Query().Get("streamPath")
 		offer := SessionDescription{}
 		bytes, err := ioutil.ReadAll(r.Body)
