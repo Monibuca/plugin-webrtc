@@ -178,7 +178,7 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 				if err = pack.Unmarshal(b[:i]); err != nil {
 					return
 				}
-				etrack.Push(pack.Timestamp, pack.Payload)
+				etrack.PushRTP(pack)
 			}
 		})
 	} else {
