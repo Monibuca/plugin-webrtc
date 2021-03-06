@@ -162,13 +162,13 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 				case MimeTypePCMA:
 					at := engine.NewAudioTrack()
 					at.SoundFormat = 7
-					at.SoundType = byte(codec.Channels) - 1
+					at.Channels = byte(codec.Channels)
 					rtc.SetOriginAT(at)
 					etrack = at
 				case MimeTypePCMU:
 					at := engine.NewAudioTrack()
 					at.SoundFormat = 8
-					at.SoundType = byte(codec.Channels) - 1
+					at.Channels = byte(codec.Channels)
 					rtc.SetOriginAT(at)
 					etrack = at
 				default:
