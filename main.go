@@ -1,6 +1,7 @@
 package webrtc
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -52,6 +53,10 @@ var config struct {
 // 	port int
 // }
 
+//go:embed ui/*
+//go:embed README.md
+var ui embed.FS
+
 var playWaitList WaitList
 var reg_level = regexp.MustCompile("profile-level-id=(4.+f)")
 
@@ -80,6 +85,7 @@ func init() {
 		Name:   "WebRTC",
 		Type:   PLUGIN_PUBLISHER | PLUGIN_SUBSCRIBER,
 		Run:    run,
+		UIFile: &ui,
 	})
 }
 
