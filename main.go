@@ -267,7 +267,7 @@ func run() {
 		if err = rtc.SetRemoteDescription(offer); err != nil {
 			return
 		}
-		vt := sub.GetVideoTrack("h264")
+		vt := sub.WaitVideoTrack("h264")
 		if vt != nil {
 			pli := "42001f"
 			pli = fmt.Sprintf("%x", vt.SPS[1:4])
