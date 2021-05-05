@@ -222,6 +222,9 @@ func (rtc *WebRTC) GetAnswer() ([]byte, error) {
 func run() {
 	var m MediaEngine
 	var s SettingEngine
+	if len(config.PublicIP) > 0 {
+		s.SetNAT1To1IPs(config.PublicIP, ICECandidateTypeHost)
+	}
 	if config.PortMin > 0 && config.PortMax > 0 {
 		s.SetEphemeralUDPPortRange(config.PortMin, config.PortMax)
 	}
