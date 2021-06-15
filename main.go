@@ -12,9 +12,7 @@ import (
 
 	"github.com/Monibuca/engine/v3"
 	"github.com/Monibuca/utils/v3"
-	"github.com/Monibuca/utils/v3/codec"
 	"github.com/pion/rtcp"
-	"github.com/pion/rtp"
 	. "github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
 )
@@ -86,7 +84,6 @@ func init() {
 }
 
 type WebRTC struct {
-	engine.Publisher
 	*PeerConnection
 }
 
@@ -116,6 +113,7 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 		// 	},
 		// },
 	})
+	rtc.PeerConnection = peerConnection
 	if err != nil {
 		utils.Println(err)
 		return false
@@ -129,21 +127,21 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 	if err != nil {
 		return false
 	}
-	peerConnection.OnICEConnectionStateChange(func(connectionState ICEConnectionState) {
-		utils.Printf("%s Connection State has changed %s ", streamPath, connectionState.String())
-		switch connectionState {
-		case ICEConnectionStateDisconnected, ICEConnectionStateFailed:
-			if rtc.Stream != nil {
-				rtc.Stream.Close()
+	stream := &engine.Stream{
+		Type:       "WebRTC",
+		StreamPath: streamPath,
+	}
+	if stream.Publish() {
+		peerConnection.OnICEConnectionStateChange(func(connectionState ICEConnectionState) {
+			utils.Printf("%s Connection State has changed %s ", streamPath, connectionState.String())
+			switch connectionState {
+			case ICEConnectionStateDisconnected, ICEConnectionStateFailed:
+				stream.Close()
 			}
-		}
-	})
-	rtc.PeerConnection = peerConnection
-	if rtc.Publish(streamPath) {
+		})
 		//f, _ := os.OpenFile("resource/live/rtc.h264", os.O_TRUNC|os.O_WRONLY, 0666)
-		rtc.Stream.Type = "WebRTC"
 		peerConnection.OnTrack(func(track *TrackRemote, receiver *RTPReceiver) {
-			defer rtc.Stream.Close()
+			defer stream.Close()
 			go func() {
 				ticker := time.NewTicker(time.Second * 2)
 				select {
@@ -151,48 +149,34 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 					if rtcpErr := peerConnection.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: uint32(track.SSRC())}}); rtcpErr != nil {
 						fmt.Println(rtcpErr)
 					}
-				case <-rtc.Done():
+				case <-stream.Done():
 					return
 				}
 			}()
-			var etrack engine.Track
-			codec := track.Codec()
-			if track.Kind() == RTPCodecTypeAudio {
+			if codec := track.Codec(); track.Kind() == RTPCodecTypeAudio {
+				var at *engine.RTPAudio
 				switch codec.MimeType {
 				case MimeTypePCMA:
-					at := engine.NewAudioTrack()
-					at.SoundFormat = 7
+					at = stream.NewRTPAudio(7)
 					at.Channels = byte(codec.Channels)
-					rtc.SetOriginAT(at)
-					etrack = at
 				case MimeTypePCMU:
-					at := engine.NewAudioTrack()
-					at.SoundFormat = 8
+					at = stream.NewRTPAudio(8)
 					at.Channels = byte(codec.Channels)
-					rtc.SetOriginAT(at)
-					etrack = at
 				default:
 					return
 				}
-
+				b := make([]byte, 1460)
+				for i, _, err := track.Read(b); err == nil; i, _, err = track.Read(b) {
+					at.Push(b[:i])
+				}
 			} else {
-				vt := engine.NewVideoTrack()
-				vt.CodecID = 7
-				rtc.SetOriginVT(vt)
-				etrack = vt
-			}
-			var pack rtp.Packet
-			b := make([]byte, 1460)
-			for {
-				i, _, err := track.Read(b)
-				if err != nil {
-					return
+				vt := stream.NewRTPVideo(7)
+				b := make([]byte, 1460)
+				for i, _, err := track.Read(b); err == nil; i, _, err = track.Read(b) {
+					vt.Push(b[:i])
 				}
-				if err = pack.Unmarshal(b[:i]); err != nil {
-					return
-				}
-				etrack.PushRTP(pack)
 			}
+
 		})
 	} else {
 		return false
@@ -271,9 +255,11 @@ func run() {
 			return
 		}
 		vt := sub.WaitVideoTrack("h264")
+		at := sub.WaitAudioTrack("pcma", "pcmu")
+		var rtpSender *RTPSender
 		if vt != nil {
 			pli := "42001f"
-			pli = fmt.Sprintf("%x", vt.SPS[1:4])
+			pli = fmt.Sprintf("%x", vt.ExtraData.NALUs[0][1:4])
 			if !strings.Contains(offer.SDP, pli) {
 				pli = reg_level.FindAllStringSubmatch(offer.SDP, -1)[0][1]
 			}
@@ -281,35 +267,55 @@ func run() {
 			if videoTrack, err = NewTrackLocalStaticSample(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", "m7s"); err != nil {
 				return
 			}
-			if _, err = rtc.AddTrack(videoTrack); err != nil {
+			rtpSender, err = rtc.AddTrack(videoTrack)
+			if err != nil {
 				return
 			}
 			var lastTimeStampV uint32
 			sub.OnVideo = func(pack engine.VideoPack) {
-				var s uint32
+				var s uint32 = 40
 				if lastTimeStampV > 0 {
 					s = pack.Timestamp - lastTimeStampV
 				}
 				lastTimeStampV = pack.Timestamp
-				if pack.NalType == codec.NALU_IDR_Picture {
-					videoTrack.WriteSample(media.Sample{
-						Data: vt.SPS,
+				if pack.IDR {
+					err = videoTrack.WriteSample(media.Sample{
+						Data: vt.ExtraData.NALUs[0],
 					})
-					videoTrack.WriteSample(media.Sample{
-						Data: vt.PPS,
+					err = videoTrack.WriteSample(media.Sample{
+						Data: vt.ExtraData.NALUs[1],
 					})
 				}
-				videoTrack.WriteSample(media.Sample{
-					Data:     pack.Payload,
-					Duration: time.Millisecond * time.Duration(s),
-				})
+				for _, nalu := range pack.NALUs {
+					err = videoTrack.WriteSample(media.Sample{
+						Data:     nalu,
+						Duration: time.Millisecond * time.Duration(s),
+					})
+				}
 			}
+			go func() {
+				rtcpBuf := make([]byte, 1500)
+				for {
+					if n, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
+
+						return
+					} else {
+						if p, err := rtcp.Unmarshal(rtcpBuf[:n]); err == nil {
+							for _, pp := range p {
+								switch pp.(type) {
+								case *rtcp.PictureLossIndication:
+									fmt.Println("PictureLossIndication")
+								}
+							}
+						}
+					}
+				}
+			}()
 		}
-		at := sub.GetAudioTrack("pcma", "pcmu")
 		if at != nil {
 			var audioTrack *TrackLocalStaticSample
 			audioMimeType := MimeTypePCMA
-			if at.SoundFormat == 8 {
+			if at.CodecID == 8 {
 				audioMimeType = MimeTypePCMU
 			}
 			if audioTrack, err = NewTrackLocalStaticSample(RTPCodecCapability{audioMimeType, 8000, 0, "", nil}, "audio", "m7s"); err != nil {
@@ -326,28 +332,29 @@ func run() {
 				}
 				lastTimeStampA = pack.Timestamp
 				audioTrack.WriteSample(media.Sample{
-					Data: pack.Payload, Duration: time.Millisecond * time.Duration(s),
+					Data: pack.Raw, Duration: time.Millisecond * time.Duration(s),
 				})
 			}
 		}
 
 		if bytes, err := rtc.GetAnswer(); err == nil {
 			w.Write(bytes)
-			rtc.OnICEConnectionStateChange(func(connectionState ICEConnectionState) {
-				utils.Printf("%s Connection State has changed %s ", streamPath, connectionState.String())
-				switch connectionState {
-				case ICEConnectionStateDisconnected, ICEConnectionStateFailed:
-					sub.Close()
-					rtc.PeerConnection.Close()
-				case ICEConnectionStateConnected:
+			rtc.OnConnectionStateChange(func(pcs PeerConnectionState) {
+				utils.Printf("%s Connection State has changed %s ", streamPath, pcs.String())
+				switch pcs {
+				case PeerConnectionStateConnected:
 					if at != nil {
 						go sub.PlayAudio(at)
 					}
 					if vt != nil {
 						go sub.PlayVideo(vt)
 					}
+				case PeerConnectionStateDisconnected, PeerConnectionStateFailed:
+					sub.Close()
+					rtc.PeerConnection.Close()
 				}
 			})
+
 		} else {
 			return
 		}
