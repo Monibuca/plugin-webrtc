@@ -256,6 +256,7 @@ func run() {
 		}
 		vt := sub.WaitVideoTrack("h264")
 		at := sub.WaitAudioTrack("pcma", "pcmu")
+		var videoTrack *TrackLocalStaticSample
 		var rtpSender *RTPSender
 		if vt != nil {
 			pli := "42001f"
@@ -263,7 +264,6 @@ func run() {
 			if !strings.Contains(offer.SDP, pli) {
 				pli = reg_level.FindAllStringSubmatch(offer.SDP, -1)[0][1]
 			}
-			var videoTrack *TrackLocalStaticSample
 			if videoTrack, err = NewTrackLocalStaticSample(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", "m7s"); err != nil {
 				return
 			}
@@ -304,6 +304,7 @@ func run() {
 							for _, pp := range p {
 								switch pp.(type) {
 								case *rtcp.PictureLossIndication:
+								
 									fmt.Println("PictureLossIndication")
 								}
 							}
