@@ -272,12 +272,12 @@ func run() {
 				return
 			}
 			var lastTimeStampV uint32
-			sub.OnVideo = func(pack engine.VideoPack) {
+			sub.OnVideo = func(ts uint32, pack *engine.VideoPack) {
 				var s uint32 = 40
 				if lastTimeStampV > 0 {
-					s = pack.Timestamp - lastTimeStampV
+					s = ts - lastTimeStampV
 				}
-				lastTimeStampV = pack.Timestamp
+				lastTimeStampV = ts
 				if pack.IDR {
 					err = videoTrack.WriteSample(media.Sample{
 						Data: vt.ExtraData.NALUs[0],
@@ -304,7 +304,7 @@ func run() {
 							for _, pp := range p {
 								switch pp.(type) {
 								case *rtcp.PictureLossIndication:
-								
+
 									fmt.Println("PictureLossIndication")
 								}
 							}
@@ -326,12 +326,12 @@ func run() {
 				return
 			}
 			var lastTimeStampA uint32
-			sub.OnAudio = func(pack engine.AudioPack) {
+			sub.OnAudio = func(ts uint32, pack *engine.AudioPack) {
 				var s uint32
 				if lastTimeStampA > 0 {
-					s = pack.Timestamp - lastTimeStampA
+					s = ts - lastTimeStampA
 				}
-				lastTimeStampA = pack.Timestamp
+				lastTimeStampA = ts
 				audioTrack.WriteSample(media.Sample{
 					Data: pack.Raw, Duration: time.Millisecond * time.Duration(s),
 				})

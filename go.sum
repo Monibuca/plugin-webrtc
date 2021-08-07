@@ -4,6 +4,8 @@ github.com/Monibuca/engine/v3 v3.1.0 h1:/U1YV6dYu4nYdLUHJgDhXzbmp1/X0Vwi8xrx1Wfy
 github.com/Monibuca/engine/v3 v3.1.0/go.mod h1:yz6cssED2VlYu+g/LrxseBB9pcvsLM/o2QXa4gVY650=
 github.com/Monibuca/engine/v3 v3.2.8 h1:FbITEYfRanr30NW+7W1ue0No2kmnolND7bWZtb6+xvE=
 github.com/Monibuca/engine/v3 v3.2.8/go.mod h1:odyqD/VTQDN4qgzajsgn7kW7MWDIzTHt+j+BcI8i+4g=
+github.com/Monibuca/engine/v3 v3.3.0 h1:7zwYsLEHdeVZy6+JjVlaDhl/asr0HG6jirBL4uynj0s=
+github.com/Monibuca/engine/v3 v3.3.0/go.mod h1:odyqD/VTQDN4qgzajsgn7kW7MWDIzTHt+j+BcI8i+4g=
 github.com/Monibuca/utils/v3 v3.0.0 h1:i8qCXQPQpRPgjuXKu5C2PYiL5LYzB6GW4xE162mB2ug=
 github.com/Monibuca/utils/v3 v3.0.0/go.mod h1:RpNS95gapWs6gimwh8Xn2x72FN5tO7Powabj7dTFyvE=
 github.com/Monibuca/utils/v3 v3.0.1/go.mod h1:RpNS95gapWs6gimwh8Xn2x72FN5tO7Powabj7dTFyvE=
