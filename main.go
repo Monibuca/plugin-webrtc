@@ -94,7 +94,13 @@ type WebRTC struct {
 func (rtc *WebRTC) Publish(streamPath string) bool {
 	if _, err := rtc.AddTransceiverFromKind(RTPCodecTypeVideo); err != nil {
 		if err != nil {
-			utils.Println(err)
+			utils.Println("AddTransceiverFromKind video", err)
+			return false
+		}
+	}
+	if _, err := rtc.AddTransceiverFromKind(RTPCodecTypeAudio); err != nil {
+		if err != nil {
+			utils.Println("AddTransceiverFromKind audio", err)
 			return false
 		}
 	}
@@ -112,16 +118,21 @@ func (rtc *WebRTC) Publish(streamPath string) bool {
 		})
 		//f, _ := os.OpenFile("resource/live/rtc.h264", os.O_TRUNC|os.O_WRONLY, 0666)
 		rtc.OnTrack(func(track *TrackRemote, receiver *RTPReceiver) {
-
 			if codec := track.Codec(); track.Kind() == RTPCodecTypeAudio {
 				var at *engine.RTPAudio
-				switch codec.MimeType {
-				case MimeTypePCMA:
+				switch codec.PayloadType {
+				case 8:
 					at = stream.NewRTPAudio(7)
-					at.Channels = byte(codec.Channels)
-				case MimeTypePCMU:
+					at.SoundRate = 8000
+					at.SoundSize = 16
+					at.Channels = 1
+					at.ExtraData = []byte{(at.CodecID << 4) | (1 << 1)}
+				case 0:
 					at = stream.NewRTPAudio(8)
-					at.Channels = byte(codec.Channels)
+					at.SoundRate = 8000
+					at.SoundSize = 16
+					at.Channels = 1
+					at.ExtraData = []byte{(at.CodecID << 4) | (1 << 1)}
 				default:
 					return
 				}
