@@ -3,6 +3,7 @@ package webrtc
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/pion/interceptor"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -196,15 +197,25 @@ func (rtc *WebRTC) GetAnswer() ([]byte, error) {
 func run() {
 	var m MediaEngine
 	var s SettingEngine
+	//m.RegisterDefaultCodecs()
+	webrtc.RegisterCodecs(&m)
+
+	i := &interceptor.Registry{}
 	if len(config.PublicIP) > 0 {
 		s.SetNAT1To1IPs(config.PublicIP, ICECandidateTypeHost)
 	}
 	if config.PortMin > 0 && config.PortMax > 0 {
 		s.SetEphemeralUDPPortRange(config.PortMin, config.PortMax)
 	}
-	// m.RegisterDefaultCodecs()
-	webrtc.RegisterCodecs(&m)
-	api = NewAPI(WithMediaEngine(&m), WithSettingEngine(s))
+	if len(config.PublicIP) > 0 {
+		s.SetNAT1To1IPs(config.PublicIP, ICECandidateTypeHost)
+	}
+	s.SetNetworkTypes([]NetworkType{NetworkTypeUDP4, NetworkTypeUDP6})
+	if err := RegisterDefaultInterceptors(&m, i); err != nil {
+		panic(err)
+	}
+	api := NewAPI(WithMediaEngine(&m),
+		WithInterceptorRegistry(i), WithSettingEngine(s))
 	http.HandleFunc("/api/webrtc/play", func(w http.ResponseWriter, r *http.Request) {
 		utils.CORS(w, r)
 		w.Header().Set("Content-Type", "application/json")
