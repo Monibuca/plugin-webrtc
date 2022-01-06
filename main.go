@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pion/interceptor"
+	"github.com/pion/rtp"
+	"github.com/pion/rtp/codecs"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/Monibuca/engine/v3"
 	"github.com/Monibuca/plugin-webrtc/v3/webrtc"
@@ -258,7 +261,7 @@ func run() {
 		}
 		vt := sub.WaitVideoTrack("h264")
 		at := sub.WaitAudioTrack("pcma", "pcmu")
-		var videoTrack *TrackLocalStaticSample
+		var videoTrack *TrackLocalStaticRTP
 		var rtpSender *RTPSender
 		if vt != nil {
 			pli := "42001f"
@@ -266,14 +269,20 @@ func run() {
 			if !strings.Contains(offer.SDP, pli) {
 				pli = reg_level.FindAllStringSubmatch(offer.SDP, -1)[0][1]
 			}
-			if videoTrack, err = NewTrackLocalStaticSample(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", "m7s"); err != nil {
+			if videoTrack, err = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", "m7s"); err != nil {
 				return
 			}
+
 			rtpSender, err = rtc.AddTrack(videoTrack)
 			if err != nil {
 				return
 			}
 			var lastTimeStampV uint32
+
+			var vpacketer rtp.Packetizer
+			ssrc := uintptr(unsafe.Pointer(&sub))
+			vpacketer = rtp.NewPacketizer(1200, 96, uint32(ssrc), &codecs.H264Payloader{}, rtp.NewFixedSequencer(1), 90000)
+
 			sub.OnVideo = func(ts uint32, pack *engine.VideoPack) {
 				var s uint32 = 40
 				if lastTimeStampV > 0 {
@@ -281,18 +290,24 @@ func run() {
 				}
 				lastTimeStampV = ts
 				if pack.IDR {
-					err = videoTrack.WriteSample(media.Sample{
-						Data: vt.ExtraData.NALUs[0],
-					})
-					err = videoTrack.WriteSample(media.Sample{
-						Data: vt.ExtraData.NALUs[1],
-					})
+					for _, nalu := range vt.ExtraData.NALUs {
+						for _, packet := range vpacketer.Packetize(nalu, s) {
+							err = videoTrack.WriteRTP(packet)
+						}
+					}
 				}
-				for _, nalu := range pack.NALUs {
-					err = videoTrack.WriteSample(media.Sample{
-						Data:     nalu,
-						Duration: time.Millisecond * time.Duration(s),
-					})
+				var firstTs uint32
+				for naluIndex, nalu := range pack.NALUs {
+					packets := vpacketer.Packetize(nalu, s)
+					for packIndex, packet := range packets {
+						if naluIndex == 0 {
+							firstTs = packet.Timestamp
+						} else {
+							packet.Timestamp = firstTs
+						}
+						packet.Marker = naluIndex == len(pack.NALUs)-1 && packIndex == len(packets)-1
+						err = videoTrack.WriteRTP(packet)
+					}
 				}
 			}
 			go func() {
