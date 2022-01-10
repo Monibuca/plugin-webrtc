@@ -83,11 +83,11 @@ func (wl *WaitList) Get(k string) *WebRTC {
 	return wl.m[k]
 }
 func init() {
-	engine.InstallPlugin(&engine.PluginConfig{
+	pc:= engine.PluginConfig{
 		Config: &config,
 		Name:   "WebRTC",
-		Run:    run,
-	})
+	}
+	pc.Install(run)
 }
 
 type WebRTC struct {
