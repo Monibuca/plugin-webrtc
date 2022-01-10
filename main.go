@@ -291,20 +291,19 @@ func run() {
 				lastTimeStampV = ts
 				if pack.IDR {
 					for _, nalu := range vt.ExtraData.NALUs {
-						for _, packet := range vpacketer.Packetize(nalu, s) {
+						for _, packet := range vpacketer.Packetize(nalu, 0) {
 							err = videoTrack.WriteRTP(packet)
 						}
 					}
 				}
-				var firstTs uint32
 				for naluIndex, nalu := range pack.NALUs {
-					packets := vpacketer.Packetize(nalu, s)
+					var packets []*rtp.Packet
+					if naluIndex == len(pack.NALUs)-1 {
+						packets = vpacketer.Packetize(nalu, s)
+					} else {
+						packets = vpacketer.Packetize(nalu, 0)
+					}
 					for packIndex, packet := range packets {
-						if naluIndex == 0 {
-							firstTs = packet.Timestamp
-						} else {
-							packet.Timestamp = firstTs
-						}
 						packet.Marker = naluIndex == len(pack.NALUs)-1 && packIndex == len(packets)-1
 						err = videoTrack.WriteRTP(packet)
 					}
