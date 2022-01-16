@@ -3,9 +3,6 @@ package webrtc
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pion/interceptor"
-	"github.com/pion/rtp"
-	"github.com/pion/rtp/codecs"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -13,6 +10,10 @@ import (
 	"sync"
 	"time"
 	"unsafe"
+
+	"github.com/pion/interceptor"
+	"github.com/pion/rtp"
+	"github.com/pion/rtp/codecs"
 
 	"github.com/Monibuca/engine/v3"
 	"github.com/Monibuca/plugin-webrtc/v3/webrtc"
@@ -83,7 +84,7 @@ func (wl *WaitList) Get(k string) *WebRTC {
 	return wl.m[k]
 }
 func init() {
-	pc:= engine.PluginConfig{
+	pc := engine.PluginConfig{
 		Config: &config,
 		Name:   "WebRTC",
 	}
@@ -329,6 +330,13 @@ func run() {
 				}
 			}()
 		}
+		if at == nil {
+			engine.TriggerHook(engine.HOOK_REQUEST_TRANSAUDIO, &engine.TransCodeReq{
+				Subscriber:   &sub,
+				RequestCodec: "pcma",
+			})
+			at = sub.WaitAudioTrack("pcma")
+		}
 		if at != nil {
 			var audioTrack *TrackLocalStaticSample
 			audioMimeType := MimeTypePCMA
@@ -353,7 +361,6 @@ func run() {
 				})
 			}
 		}
-
 		if bytes, err := rtc.GetAnswer(); err == nil {
 			w.Write(bytes)
 			rtc.OnConnectionStateChange(func(pcs PeerConnectionState) {
