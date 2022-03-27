@@ -73,7 +73,7 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 			suber.Info("Connection State has changed:" + pcs.String())
 			switch pcs {
 			case PeerConnectionStateConnected:
-				go suber.PlayBlock(suber)
+				go suber.PlayBlock()
 			case PeerConnectionStateDisconnected, PeerConnectionStateFailed:
 				suber.Stop()
 				suber.PeerConnection.Close()
