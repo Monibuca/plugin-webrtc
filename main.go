@@ -81,9 +81,9 @@ func (conf *WebRTCConfig) OnEvent(event any) {
 	}
 }
 
-func (conf *WebRTCConfig) API_play(w http.ResponseWriter, r *http.Request) {
+func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/sdp")
-	streamPath := r.URL.Query().Get("streamPath")
+	streamPath := r.URL.Path[12:]
 	bytes, err := ioutil.ReadAll(r.Body)
 	var suber WebRTCSubscriber
 	suber.SDP = string(bytes)
@@ -111,9 +111,9 @@ func (conf *WebRTCConfig) API_play(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (conf *WebRTCConfig) API_publish(w http.ResponseWriter, r *http.Request) {
+func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
+	streamPath := r.URL.Path[12:]
 	w.Header().Set("Content-Type", "application/sdp")
-	streamPath := r.URL.Query().Get("streamPath")
 	bytes, err := ioutil.ReadAll(r.Body)
 	var puber WebRTCPublisher
 	puber.SDP = string(bytes)
