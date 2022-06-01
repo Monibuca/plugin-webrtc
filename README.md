@@ -4,7 +4,7 @@
 
 ## 插件地址
 
-https://github.com/Monibuca/plugin-webtrc
+https://github.com/Monibuca/plugin-webrtc
 
 ## 插件引入
 ```go
