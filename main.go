@@ -42,7 +42,6 @@ import (
 // }
 var (
 	reg_level = regexp.MustCompile("profile-level-id=(4.+f)")
-	api       *API
 )
 
 type WebRTCConfig struct {
@@ -87,7 +86,7 @@ func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 	bytes, err := ioutil.ReadAll(r.Body)
 	var suber WebRTCSubscriber
 	suber.SDP = string(bytes)
-	if suber.PeerConnection, err = api.NewPeerConnection(Configuration{}); err != nil {
+	if suber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -117,7 +116,7 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 	bytes, err := ioutil.ReadAll(r.Body)
 	var puber WebRTCPublisher
 	puber.SDP = string(bytes)
-	if puber.PeerConnection, err = api.NewPeerConnection(Configuration{}); err != nil {
+	if puber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
