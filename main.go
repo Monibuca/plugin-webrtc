@@ -95,7 +95,7 @@ func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 			suber.Info(ice.ToJSON().Candidate)
 		}
 	})
-	if err = suber.SetRemoteDescription(SessionDescription{SDP: suber.SDP}); err != nil {
+	if err = suber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: suber.SDP}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -137,7 +137,7 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := puber.SetRemoteDescription(SessionDescription{SDP: puber.SDP}); err != nil {
+	if err := puber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: puber.SDP}); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
