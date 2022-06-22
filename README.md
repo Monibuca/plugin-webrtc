@@ -11,6 +11,19 @@ https://github.com/Monibuca/plugin-webrtc
     import (  _ "m7s.live/plugin/webrtc/v4" )
 ```
 
+## 默认配置
+
+```yaml
+webrtc:
+  iceservers: []
+  publicip: []
+  portmin: 0
+  portmax: 0
+  pli: 2000000000 # 2s
+```
+
+### 本地测试无需修改配置，如果远程访问，则需要配置publicip
+
 ## 基本原理
 
 通过浏览器和monibuca交换sdp信息，然后读取rtp包或者发送rtp的方式进行
