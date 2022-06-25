@@ -40,8 +40,7 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 							for _, pp := range p {
 								switch pp.(type) {
 								case *rtcp.PictureLossIndication:
-
-									fmt.Println("PictureLossIndication")
+									// fmt.Println("PictureLossIndication")
 								}
 							}
 						}
@@ -60,20 +59,16 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 			suber.PeerConnection.AddTrack(suber.audioTrack)
 			suber.Subscriber.AddTrack(v) //接受这个track
 		}
-	case *VideoFrame:
-		for _, p := range v.RTP {
-			suber.videoTrack.Write(p.Raw)
-		}
-	case *AudioFrame:
-		for _, p := range v.RTP {
-			suber.audioTrack.Write(p.Raw)
-		}
+	case VideoRTP:
+		suber.videoTrack.WriteRTP(&v.Packet)
+	case AudioRTP:
+		suber.audioTrack.WriteRTP(&v.Packet)
 	case ISubscriber:
 		suber.OnConnectionStateChange(func(pcs PeerConnectionState) {
 			suber.Info("Connection State has changed:" + pcs.String())
 			switch pcs {
 			case PeerConnectionStateConnected:
-				go suber.PlayRaw()
+				go suber.PlayRTP()
 			case PeerConnectionStateDisconnected, PeerConnectionStateFailed:
 				suber.Stop()
 				suber.PeerConnection.Close()

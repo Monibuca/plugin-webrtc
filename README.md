@@ -16,7 +16,7 @@ https://github.com/Monibuca/plugin-webrtc
 ```yaml
 webrtc:
   iceservers: []
-  publicip: []
+  publicip: [] # 可以是数组也可以是字符串（内部自动转成数组）
   portmin: 0
   portmax: 0
   pli: 2000000000 # 2s
