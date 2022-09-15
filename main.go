@@ -2,6 +2,8 @@ package webrtc
 
 import (
 	"io/ioutil"
+	"m7s.live/engine/v4"
+	"net"
 	"net/http"
 	"regexp"
 	"time"
@@ -9,7 +11,6 @@ import (
 	"github.com/pion/interceptor"
 
 	. "github.com/pion/webrtc/v3"
-	"m7s.live/engine/v4"
 	"m7s.live/engine/v4/config"
 	"m7s.live/plugin/webrtc/v4/webrtc"
 )
@@ -51,10 +52,14 @@ type WebRTCConfig struct {
 	PublicIP   []string
 	PortMin    uint16
 	PortMax    uint16
-	PLI        time.Duration
-	m          MediaEngine
-	s          SettingEngine
-	api        *API
+
+	InvitePortFixed bool
+	IceUdpMux       int
+
+	PLI time.Duration
+	m   MediaEngine
+	s   SettingEngine
+	api *API
 }
 
 func (conf *WebRTCConfig) OnEvent(event any) {
@@ -68,9 +73,18 @@ func (conf *WebRTCConfig) OnEvent(event any) {
 		if conf.PortMin > 0 && conf.PortMax > 0 {
 			conf.s.SetEphemeralUDPPortRange(conf.PortMin, conf.PortMax)
 		}
-		if len(conf.PublicIP) > 0 {
-			conf.s.SetNAT1To1IPs(conf.PublicIP, ICECandidateTypeHost)
+
+		// 是否多路复用UDP端口
+		if conf.InvitePortFixed {
+			// 创建共享WEBRTC端口 默认9000
+			udpListener, _ := net.ListenUDP("udp", &net.UDPAddr{
+				IP:   net.IP{0, 0, 0, 0},
+				Port: conf.IceUdpMux,
+			})
+
+			conf.s.SetICEUDPMux(NewICEUDPMux(nil, udpListener))
 		}
+
 		conf.s.SetNetworkTypes([]NetworkType{NetworkTypeUDP4, NetworkTypeUDP6})
 		if err := RegisterDefaultInterceptors(&conf.m, i); err != nil {
 			panic(err)
@@ -150,7 +164,9 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 }
 
 var webrtcConfig = &WebRTCConfig{
-	PLI: time.Second * 2,
+	InvitePortFixed: true, // 设备将流发送的端口，是否固定  on 发送流到多路复用端口 如9000  off 自动从 mix_port - max_port 之间的值中  选一个可以用的端口
+	IceUdpMux:       9000, // 接收设备端rtp流的多路复用端口
+	PLI:             time.Second * 2,
 }
 
 var plugin = engine.InstallPlugin(webrtcConfig)
