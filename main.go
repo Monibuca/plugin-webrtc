@@ -2,6 +2,8 @@ package webrtc
 
 import (
 	"io/ioutil"
+	"m7s.live/engine/v4"
+	"net"
 	"net/http"
 	"regexp"
 	"time"
@@ -9,7 +11,6 @@ import (
 	"github.com/pion/interceptor"
 
 	. "github.com/pion/webrtc/v3"
-	"m7s.live/engine/v4"
 	"m7s.live/engine/v4/config"
 	"m7s.live/plugin/webrtc/v4/webrtc"
 )
@@ -51,10 +52,14 @@ type WebRTCConfig struct {
 	PublicIP   []string
 	PortMin    uint16
 	PortMax    uint16
-	PLI        time.Duration
-	m          MediaEngine
-	s          SettingEngine
-	api        *API
+
+	InvitePortFixed bool
+	IceUdpMux       int
+
+	PLI time.Duration
+	m   MediaEngine
+	s   SettingEngine
+	api *API
 }
 
 func (conf *WebRTCConfig) OnEvent(event any) {
@@ -150,7 +155,9 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 }
 
 var webrtcConfig = &WebRTCConfig{
-	PLI: time.Second * 2,
+	InvitePortFixed: true, // 设备将流发送的端口，是否固定  on 发送流到多路复用端口 如9000  off 自动从 mix_port - max_port 之间的值中  选一个可以用的端口
+	IceUdpMux:       9000, // 接收设备端rtp流的多路复用端口
+	PLI:             time.Second * 2,
 }
 
 var plugin = engine.InstallPlugin(webrtcConfig)
