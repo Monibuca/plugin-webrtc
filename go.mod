@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/pion/interceptor v0.1.11
 	github.com/pion/rtcp v1.2.9
-	github.com/pion/webrtc/v3 v3.1.43
+	github.com/pion/webrtc/v3 v3.1.44
 	m7s.live/engine/v4 v4.6.8
 )
 

@@ -2,11 +2,13 @@ package webrtc
 
 import (
 	"io/ioutil"
-	"m7s.live/engine/v4"
 	"net"
 	"net/http"
 	"regexp"
 	"time"
+
+	"go.uber.org/zap"
+	"m7s.live/engine/v4"
 
 	"github.com/pion/interceptor"
 
@@ -77,11 +79,14 @@ func (conf *WebRTCConfig) OnEvent(event any) {
 		// 是否多路复用UDP端口
 		if conf.InvitePortFixed {
 			// 创建共享WEBRTC端口 默认9000
-			udpListener, _ := net.ListenUDP("udp", &net.UDPAddr{
+			udpListener, err := net.ListenUDP("udp", &net.UDPAddr{
 				IP:   net.IP{0, 0, 0, 0},
 				Port: conf.IceUdpMux,
 			})
-
+			if err != nil {
+				plugin.Fatal("webrtc listener udp", zap.Error(err))
+			}
+			plugin.Info("webrtc start listen", zap.Int("port", conf.IceUdpMux))
 			conf.s.SetICEUDPMux(NewICEUDPMux(nil, udpListener))
 		}
 
