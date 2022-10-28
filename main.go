@@ -84,9 +84,9 @@ func (conf *WebRTCConfig) OnEvent(event any) {
 				Port: conf.IceUdpMux,
 			})
 			if err != nil {
-				plugin.Fatal("webrtc listener udp", zap.Error(err))
+				WebRTCPlugin.Fatal("webrtc listener udp", zap.Error(err))
 			}
-			plugin.Info("webrtc start listen", zap.Int("port", conf.IceUdpMux))
+			WebRTCPlugin.Info("webrtc start listen", zap.Int("port", conf.IceUdpMux))
 			conf.s.SetICEUDPMux(NewICEUDPMux(nil, udpListener))
 		}
 
@@ -118,10 +118,10 @@ func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err = plugin.Subscribe(streamPath, &suber); err != nil {
+	if err = WebRTCPlugin.Subscribe(streamPath, &suber); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	}
+	}     
 	if sdp, err := suber.GetAnswer(); err == nil {
 		w.Write([]byte(sdp))
 	} else {
@@ -152,7 +152,7 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err = plugin.Publish(streamPath, &puber); err != nil {
+	if err = WebRTCPlugin.Publish(streamPath, &puber); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -174,4 +174,34 @@ var webrtcConfig = &WebRTCConfig{
 	PLI:             time.Second * 2,
 }
 
-var plugin = engine.InstallPlugin(webrtcConfig)
+var WebRTCPlugin = engine.InstallPlugin(webrtcConfig)
+
+
+func (conf *WebRTCConfig) Batch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/sdp")
+	bytes, err := ioutil.ReadAll(r.Body)
+	var suber WebRTCSubscriber
+	suber.SDP = string(bytes)
+	if suber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{}); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	suber.OnICECandidate(func(ice *ICECandidate) {
+		if ice != nil {
+			suber.Info(ice.ToJSON().Candidate)
+		}
+	})
+	if err = suber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: suber.SDP}); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// if err = WebRTCPlugin.Subscribe(streamPath, &suber); err != nil {
+	// 	http.Error(w, err.Error(), http.StatusBadRequest)
+	// 	return
+	// }
+	if sdp, err := suber.GetAnswer(); err == nil {
+		w.Write([]byte(sdp))
+	} else {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+}

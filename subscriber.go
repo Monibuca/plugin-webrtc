@@ -78,3 +78,10 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 		suber.Subscriber.OnEvent(event)
 	}
 }
+
+// WebRTCBatcher 批量订阅者
+type WebRTCBatcher struct {
+	WebRTCIO
+	PageSize int
+	PageNum  int
+}
