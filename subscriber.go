@@ -2,6 +2,7 @@ package webrtc
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/pion/rtcp"
@@ -9,25 +10,37 @@ import (
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/codec"
 	"m7s.live/engine/v4/track"
+	"m7s.live/engine/v4/util"
 )
 
 type WebRTCSubscriber struct {
 	Subscriber
 	WebRTCIO
-	videoTrack *TrackLocalStaticRTP
-	audioTrack *TrackLocalStaticRTP
+	videoTrack   *TrackLocalStaticRTP
+	audioTrack   *TrackLocalStaticRTP
+	DC           *DataChannel
+	flvHeadCache []byte
 }
 
 func (suber *WebRTCSubscriber) OnEvent(event any) {
 	switch v := event.(type) {
 	case *track.Video:
-		if v.CodecID == codec.CodecID_H264 {
+		switch v.CodecID {
+		case codec.CodecID_H264:
 			pli := "42001f"
 			pli = fmt.Sprintf("%x", v.GetDecoderConfiguration().Raw[0][1:4])
 			if !strings.Contains(suber.SDP, pli) {
 				pli = reg_level.FindAllStringSubmatch(suber.SDP, -1)[0][1]
 			}
-			suber.videoTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", "m7s")
+			suber.videoTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", suber.Subscriber.Stream.Path)
+		case codec.CodecID_H265:
+			// suber.videoTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH265, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", suber.Subscriber.Stream.Path)
+		default:
+			return
+		}
+		if suber.videoTrack == nil {
+			suber.DC, _ = suber.PeerConnection.CreateDataChannel(suber.Subscriber.Stream.Path, nil)
+		} else {
 			rtpSender, _ := suber.PeerConnection.AddTrack(suber.videoTrack)
 			go func() {
 				rtcpBuf := make([]byte, 1500)
@@ -47,20 +60,46 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 					}
 				}
 			}()
-			suber.Subscriber.AddTrack(v) //接受这个track
 		}
+		suber.Subscriber.AddTrack(v) //接受这个track
 	case *track.Audio:
 		audioMimeType := MimeTypePCMA
 		if v.CodecID == codec.CodecID_PCMU {
 			audioMimeType = MimeTypePCMU
 		}
 		if v.CodecID == codec.CodecID_PCMA || v.CodecID == codec.CodecID_PCMU {
-			suber.audioTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: audioMimeType}, "audio", "m7s")
+			suber.audioTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: audioMimeType}, "audio", suber.Subscriber.Stream.Path)
 			suber.PeerConnection.AddTrack(suber.audioTrack)
 			suber.Subscriber.AddTrack(v) //接受这个track
 		}
+	case VideoDeConf:
+		if suber.DC != nil {
+			if suber.flvHeadCache == nil {
+				suber.flvHeadCache = make([]byte, 15)
+				suber.flvHeadCache[0] = 9
+				suber.DC.Send(codec.FLVHeader)
+			}
+			suber.DC.Send(util.ConcatBuffers(v.FLV))
+		}
 	case VideoRTP:
-		suber.videoTrack.WriteRTP(&v.Packet)
+		if suber.videoTrack != nil {
+			suber.videoTrack.WriteRTP(&v.Packet)
+		} else if suber.DC != nil {
+			frame := suber.Video.Frame
+			dataSize := uint32(util.SizeOfBuffers(frame.AVCC))
+			result := net.Buffers{suber.flvHeadCache[:11]}
+			result = append(result, frame.AVCC...)
+			ts := frame.AbsTime - suber.SkipTS
+			util.PutBE(suber.flvHeadCache[1:4], dataSize)
+			util.PutBE(suber.flvHeadCache[4:7], ts)
+			suber.flvHeadCache[7] = byte(ts >> 24)
+			result = append(result, util.PutBE(suber.flvHeadCache[11:15], dataSize+11))
+			for _, data := range util.SplitBuffers(result, 65535) {
+				for _, d := range data {
+					suber.DC.Send(d)
+				}
+			}
+		}
 	case AudioRTP:
 		suber.audioTrack.WriteRTP(&v.Packet)
 	case ISubscriber:
@@ -79,9 +118,15 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 	}
 }
 
-// WebRTCBatcher 批量订阅者
-type WebRTCBatcher struct {
-	WebRTCIO
-	PageSize int
-	PageNum  int
+type WebRTCBatchSubscriber struct {
+	WebRTCSubscriber
+}
+
+func (suber *WebRTCBatchSubscriber) OnEvent(event any) {
+	switch event.(type) {
+	case ISubscriber:
+
+	default:
+		suber.WebRTCSubscriber.OnEvent(event)
+	}
 }

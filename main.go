@@ -39,10 +39,10 @@ import (
 // 	"stun:stun01.sipphone.com",
 // }}
 
-// type udpConn struct {
-// 	conn *net.UDPConn
-// 	port int
-// }
+//	type udpConn struct {
+//		conn *net.UDPConn
+//		port int
+//	}
 var (
 	reg_level = regexp.MustCompile("profile-level-id=(4.+f)")
 )
@@ -121,7 +121,7 @@ func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 	if err = WebRTCPlugin.Subscribe(streamPath, &suber); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	}     
+	}
 	if sdp, err := suber.GetAnswer(); err == nil {
 		w.Write([]byte(sdp))
 	} else {
@@ -176,29 +176,19 @@ var webrtcConfig = &WebRTCConfig{
 
 var WebRTCPlugin = engine.InstallPlugin(webrtcConfig)
 
-
 func (conf *WebRTCConfig) Batch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/sdp")
 	bytes, err := ioutil.ReadAll(r.Body)
-	var suber WebRTCSubscriber
+	var suber WebRTCBatcher
 	suber.SDP = string(bytes)
 	if suber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	suber.OnICECandidate(func(ice *ICECandidate) {
-		if ice != nil {
-			suber.Info(ice.ToJSON().Candidate)
-		}
-	})
-	if err = suber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: suber.SDP}); err != nil {
+	if err = suber.Start(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// if err = WebRTCPlugin.Subscribe(streamPath, &suber); err != nil {
-	// 	http.Error(w, err.Error(), http.StatusBadRequest)
-	// 	return
-	// }
 	if sdp, err := suber.GetAnswer(); err == nil {
 		w.Write([]byte(sdp))
 	} else {
