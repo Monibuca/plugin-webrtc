@@ -11,7 +11,7 @@ type Signal struct {
 	Type       string   `json:"type"`
 	StreamList []string `json:"streamList"`
 	Offer      string   `json:"offer"`
-	Answer 	 string   `json:"answer"`
+	Answer     string   `json:"answer"`
 }
 
 type WebRTCBatcher struct {
@@ -59,27 +59,30 @@ func (suber *WebRTCBatcher) Signal(msg DataChannelMessage) {
 	} else {
 		switch s.Type {
 		case "subscribe":
-
-			// if err = suber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: s.Offer}); err != nil {
-			// 	WebRTCPlugin.Error("Signal SetRemoteDescription", zap.Error(err))
-			// 	return
-			// }
-			// var answer string
-			// if answer, err = suber.GetAnswer(); err == nil {
-			// 	b, _ := json.Marshal(map[string]string{"type": "answer", "answer": answer})
-			// 	err = suber.signalChannel.Send(b)
-			// }
-			// if err != nil {
-			// 	WebRTCPlugin.Error("Signal GetAnswer", zap.Error(err))
-			// 	return
-			// }
-			sub := &WebRTCBatchSubscriber{}
-			sub.WebRTCIO = suber.WebRTCIO
+			if err = suber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: s.Offer}); err != nil {
+				WebRTCPlugin.Error("Signal SetRemoteDescription", zap.Error(err))
+				return
+			}
 			for _, streamPath := range s.StreamList {
+				sub := &WebRTCBatchSubscriber{}
+				sub.WebRTCIO = suber.WebRTCIO
 				if err = WebRTCPlugin.Subscribe(streamPath, sub); err == nil {
 					suber.subscribers = append(suber.subscribers, sub)
-					go sub.PlayRTP()
+					go func() {
+						sub.PlayRTP()
+						b, _ := json.Marshal(map[string]string{"type": "remove", "streamPath": streamPath})
+						suber.signalChannel.SendText(string(b))
+					}()
 				}
+			}
+			var answer string
+			if answer, err = suber.GetAnswer(); err == nil {
+				b, _ := json.Marshal(map[string]string{"type": "answer", "sdp": answer})
+				err = suber.signalChannel.SendText(string(b))
+			}
+			if err != nil {
+				WebRTCPlugin.Error("Signal GetAnswer", zap.Error(err))
+				return
 			}
 			// if offer, err = suber.CreateOffer(nil); err == nil {
 			// 	b, _ := json.Marshal(offer)

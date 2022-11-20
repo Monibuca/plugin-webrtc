@@ -30,9 +30,12 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 			pli := "42001f"
 			pli = fmt.Sprintf("%x", v.GetDecoderConfiguration().Raw[0][1:4])
 			if !strings.Contains(suber.SDP, pli) {
-				pli = reg_level.FindAllStringSubmatch(suber.SDP, -1)[0][1]
+				list := reg_level.FindAllStringSubmatch(suber.SDP, -1)
+				if len(list) > 0 {
+					pli = list[0][1]
+				}
 			}
-			suber.videoTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", suber.Subscriber.Stream.Path)
+			suber.videoTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, v.Name, suber.Subscriber.Stream.Path)
 		case codec.CodecID_H265:
 			// suber.videoTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH265, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", suber.Subscriber.Stream.Path)
 		default:
@@ -68,7 +71,7 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 			audioMimeType = MimeTypePCMU
 		}
 		if v.CodecID == codec.CodecID_PCMA || v.CodecID == codec.CodecID_PCMU {
-			suber.audioTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: audioMimeType}, "audio", suber.Subscriber.Stream.Path)
+			suber.audioTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: audioMimeType}, v.Name, suber.Subscriber.Stream.Path)
 			suber.PeerConnection.AddTrack(suber.audioTrack)
 			suber.Subscriber.AddTrack(v) //接受这个track
 		}
@@ -125,7 +128,6 @@ type WebRTCBatchSubscriber struct {
 func (suber *WebRTCBatchSubscriber) OnEvent(event any) {
 	switch event.(type) {
 	case ISubscriber:
-
 	default:
 		suber.WebRTCSubscriber.OnEvent(event)
 	}
