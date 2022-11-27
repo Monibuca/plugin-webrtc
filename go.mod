@@ -7,7 +7,7 @@ require (
 	github.com/pion/rtcp v1.2.10
 	github.com/pion/webrtc/v3 v3.1.48
 	go.uber.org/zap v1.23.0
-	m7s.live/engine/v4 v4.8.4
+	m7s.live/engine/v4 v4.8.7
 )
 
 require (
