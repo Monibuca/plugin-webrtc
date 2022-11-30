@@ -53,6 +53,7 @@ func (suber *WebRTCBatcher) Start() (err error) {
 
 func (suber *WebRTCBatcher) Signal(msg DataChannelMessage) {
 	var s Signal
+	var removeMap = map[string]string{"type": "remove", "streamPath": ""}
 	// var offer SessionDescription
 	if err := json.Unmarshal(msg.Data, &s); err != nil {
 		WebRTCPlugin.Error("Signal", zap.Error(err))
@@ -66,13 +67,27 @@ func (suber *WebRTCBatcher) Signal(msg DataChannelMessage) {
 			for _, streamPath := range s.StreamList {
 				sub := &WebRTCBatchSubscriber{}
 				sub.WebRTCIO = suber.WebRTCIO
-				if err = WebRTCPlugin.Subscribe(streamPath, sub); err == nil {
+				if err = WebRTCPlugin.SubscribeExist(streamPath, sub); err == nil {
 					suber.subscribers = append(suber.subscribers, sub)
 					go func() {
 						sub.PlayRTP()
-						b, _ := json.Marshal(map[string]string{"type": "remove", "streamPath": streamPath})
+						if sub.audioSender != nil {
+							suber.RemoveTrack(sub.audioSender)
+						}
+						if sub.videoSender != nil {
+							suber.RemoveTrack(sub.videoSender)
+						}
+						if sub.DC != nil {
+							sub.DC.Close()
+						}
+						removeMap["streamPath"] = streamPath
+						b, _ := json.Marshal(removeMap)
 						suber.signalChannel.SendText(string(b))
 					}()
+				} else {
+					removeMap["streamPath"] = streamPath
+					b, _ := json.Marshal(removeMap)
+					suber.signalChannel.SendText(string(b))
 				}
 			}
 			var answer string

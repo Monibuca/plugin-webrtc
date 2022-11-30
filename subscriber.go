@@ -18,6 +18,8 @@ type WebRTCSubscriber struct {
 	WebRTCIO
 	videoTrack   *TrackLocalStaticRTP
 	audioTrack   *TrackLocalStaticRTP
+	videoSender  *RTPSender
+	audioSender  *RTPSender
 	DC           *DataChannel
 	flvHeadCache []byte
 }
@@ -44,11 +46,11 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 		if suber.videoTrack == nil {
 			suber.DC, _ = suber.PeerConnection.CreateDataChannel(suber.Subscriber.Stream.Path, nil)
 		} else {
-			rtpSender, _ := suber.PeerConnection.AddTrack(suber.videoTrack)
+			suber.videoSender, _ = suber.PeerConnection.AddTrack(suber.videoTrack)
 			go func() {
 				rtcpBuf := make([]byte, 1500)
 				for {
-					if n, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
+					if n, _, rtcpErr := suber.videoSender.Read(rtcpBuf); rtcpErr != nil {
 
 						return
 					} else {
@@ -72,7 +74,7 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 		}
 		if v.CodecID == codec.CodecID_PCMA || v.CodecID == codec.CodecID_PCMU {
 			suber.audioTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: audioMimeType}, v.Name, suber.Subscriber.Stream.Path)
-			suber.PeerConnection.AddTrack(suber.audioTrack)
+			suber.audioSender, _ = suber.PeerConnection.AddTrack(suber.audioTrack)
 			suber.Subscriber.AddTrack(v) //接受这个track
 		}
 	case VideoDeConf:
@@ -82,7 +84,7 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 				suber.flvHeadCache[0] = 9
 				suber.DC.Send(codec.FLVHeader)
 			}
-			suber.DC.Send(util.ConcatBuffers(codec.VideoAVCC2FLV(v.AVCC,0)))
+			suber.DC.Send(util.ConcatBuffers(codec.VideoAVCC2FLV(v.AVCC, 0)))
 		}
 	case VideoRTP:
 		if suber.videoTrack != nil {
