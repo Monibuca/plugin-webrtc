@@ -2,9 +2,14 @@ package webrtc
 
 import (
 	"encoding/json"
+	"fmt"
+	"time"
 
+	"github.com/pion/rtcp"
 	. "github.com/pion/webrtc/v3"
 	"go.uber.org/zap"
+	. "m7s.live/engine/v4"
+	. "m7s.live/engine/v4/track"
 )
 
 type Signal struct {
@@ -12,14 +17,19 @@ type Signal struct {
 	StreamList []string `json:"streamList"`
 	Offer      string   `json:"offer"`
 	Answer     string   `json:"answer"`
+	StreamPath string   `json:"streamPath"`
 }
-
+type BatchUplink struct {
+	Publisher
+	StreamPath string
+}
 type WebRTCBatcher struct {
 	WebRTCIO
 	PageSize      int
 	PageNum       int
 	subscribers   []*WebRTCBatchSubscriber
 	signalChannel *DataChannel
+	BatchUplink
 }
 
 func (suber *WebRTCBatcher) Start() (err error) {
@@ -40,7 +50,59 @@ func (suber *WebRTCBatcher) Start() (err error) {
 		WebRTCPlugin.Info("Connection State has changed:" + pcs.String())
 		switch pcs {
 		case PeerConnectionStateConnected:
-
+			suber.OnTrack(func(track *TrackRemote, receiver *RTPReceiver) {
+				if suber.Publisher.Stream == nil {
+					WebRTCPlugin.Publish(suber.StreamPath, &suber.BatchUplink)
+				}
+				if suber.Publisher.Stream == nil {
+					return
+				}
+				puber := &suber.Publisher
+				if codec := track.Codec(); track.Kind() == RTPCodecTypeAudio {
+					if puber.AudioTrack == nil {
+						switch codec.PayloadType {
+						case 8:
+							puber.AudioTrack = NewG711(puber.Stream, true)
+						case 0:
+							puber.AudioTrack = NewG711(puber.Stream, false)
+						default:
+							puber.AudioTrack = nil
+							return
+						}
+					}
+					for {
+						b := make([]byte, 1460)
+						if i, _, err := track.Read(b); err == nil {
+							puber.AudioTrack.WriteRTP(b[:i])
+						} else {
+							return
+						}
+					}
+				} else {
+					go func() {
+						ticker := time.NewTicker(time.Millisecond * webrtcConfig.PLI)
+						for {
+							select {
+							case <-ticker.C:
+								if rtcpErr := suber.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: uint32(track.SSRC())}}); rtcpErr != nil {
+									fmt.Println(rtcpErr)
+								}
+							case <-puber.Done():
+								return
+							}
+						}
+					}()
+					puber.VideoTrack = NewH264(puber.Stream)
+					for {
+						b := make([]byte, 1460)
+						if i, _, err := track.Read(b); err == nil {
+							puber.VideoTrack.WriteRTP(b[:i])
+						} else {
+							return
+						}
+					}
+				}
+			})
 		case PeerConnectionStateDisconnected, PeerConnectionStateFailed:
 			for _, sub := range suber.subscribers {
 				go sub.Stop()
@@ -59,6 +121,8 @@ func (suber *WebRTCBatcher) Signal(msg DataChannelMessage) {
 		WebRTCPlugin.Error("Signal", zap.Error(err))
 	} else {
 		switch s.Type {
+		case "streamPath":
+			suber.StreamPath = s.StreamPath
 		case "subscribe":
 			if err = suber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: s.Offer}); err != nil {
 				WebRTCPlugin.Error("Signal SetRemoteDescription", zap.Error(err))
@@ -99,11 +163,25 @@ func (suber *WebRTCBatcher) Signal(msg DataChannelMessage) {
 				WebRTCPlugin.Error("Signal GetAnswer", zap.Error(err))
 				return
 			}
-			// if offer, err = suber.CreateOffer(nil); err == nil {
-			// 	b, _ := json.Marshal(offer)
-			// 	err = suber.signalChannel.SendText(string(b))
-			// 	suber.SetLocalDescription(offer)
-			// }
+		// if offer, err = suber.CreateOffer(nil); err == nil {
+		// 	b, _ := json.Marshal(offer)
+		// 	err = suber.signalChannel.SendText(string(b))
+		// 	suber.SetLocalDescription(offer)
+		// }
+		case "publish":
+			if err = suber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: s.Offer}); err != nil {
+				WebRTCPlugin.Error("Signal SetRemoteDescription", zap.Error(err))
+				return
+			}
+			var answer string
+			if answer, err = suber.GetAnswer(); err == nil {
+				b, _ := json.Marshal(map[string]string{"type": "answer", "sdp": answer})
+				err = suber.signalChannel.SendText(string(b))
+			}
+			if err != nil {
+				WebRTCPlugin.Error("Signal GetAnswer", zap.Error(err))
+				return
+			}
 		case "answer":
 			if err = suber.SetRemoteDescription(SessionDescription{Type: SDPTypeAnswer, SDP: s.Answer}); err != nil {
 				WebRTCPlugin.Error("Signal SetRemoteDescription", zap.Error(err))
