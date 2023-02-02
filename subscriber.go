@@ -82,17 +82,17 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 				suber.flvHeadCache[0] = 9
 				suber.DC.Send(codec.FLVHeader)
 			}
-			suber.DC.Send(util.ConcatBuffers(codec.VideoAVCC2FLV(v.AVCC, 0)))
+			suber.DC.Send(util.ConcatBuffers(codec.VideoAVCC2FLV(0, v)))
 		}
 	case VideoRTP:
 		if suber.videoTrack != nil {
 			suber.videoTrack.WriteRTP(&v.Packet)
 		} else if suber.DC != nil {
-			frame := suber.Video.Frame
-			dataSize := uint32(util.SizeOfBuffers(frame.AVCC))
+			frame := suber.VideoReader.Frame
+			dataSize := uint32(frame.AVCC.ByteLength)
 			result := net.Buffers{suber.flvHeadCache[:11]}
-			result = append(result, frame.AVCC...)
-			ts := frame.AbsTime - suber.SkipTS
+			result = append(result, frame.AVCC.ToBuffers()...)
+			ts := suber.VideoReader.AbsTime
 			util.PutBE(suber.flvHeadCache[1:4], dataSize)
 			util.PutBE(suber.flvHeadCache[4:7], ts)
 			suber.flvHeadCache[7] = byte(ts >> 24)
