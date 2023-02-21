@@ -80,7 +80,7 @@ func (suber *WebRTCBatcher) Start() (err error) {
 					}
 				} else {
 					go func() {
-						ticker := time.NewTicker(time.Millisecond * webrtcConfig.PLI)
+						ticker := time.NewTicker(webrtcConfig.PLI)
 						for {
 							select {
 							case <-ticker.C:
@@ -92,7 +92,7 @@ func (suber *WebRTCBatcher) Start() (err error) {
 							}
 						}
 					}()
-					puber.VideoTrack = NewH264(puber.Stream)
+					puber.VideoTrack = NewH264(puber.Stream, byte(codec.PayloadType))
 					for {
 						b := make([]byte, 1460)
 						if i, _, err := track.Read(b); err == nil {

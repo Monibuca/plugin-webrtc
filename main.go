@@ -55,10 +55,10 @@ type WebRTCConfig struct {
 	PortMin    uint16
 	PortMax    uint16
 
-	InvitePortFixed bool
-	IceUdpMux       int
+	InvitePortFixed bool `default:"true"` // 设备将流发送的端口，是否固定  on 发送流到多路复用端口 如9000  off 自动从 mix_port - max_port 之间的值中  选一个可以用的端口
+	IceUdpMux       int  `default:"9000"` // 接收设备端rtp流的多路复用端口
 
-	PLI time.Duration
+	PLI time.Duration `default:"2s"` // 视频流丢包后，发送PLI请求
 	m   MediaEngine
 	s   SettingEngine
 	api *API
@@ -168,13 +168,9 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var webrtcConfig = &WebRTCConfig{
-	InvitePortFixed: true, // 设备将流发送的端口，是否固定  on 发送流到多路复用端口 如9000  off 自动从 mix_port - max_port 之间的值中  选一个可以用的端口
-	IceUdpMux:       9000, // 接收设备端rtp流的多路复用端口
-	PLI:             time.Second * 2,
-}
+var webrtcConfig WebRTCConfig
 
-var WebRTCPlugin = engine.InstallPlugin(webrtcConfig)
+var WebRTCPlugin = engine.InstallPlugin(&webrtcConfig)
 
 func (conf *WebRTCConfig) Batch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/sdp")

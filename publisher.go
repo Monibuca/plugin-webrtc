@@ -48,7 +48,7 @@ func (puber *WebRTCPublisher) OnEvent(event any) {
 				}
 			} else {
 				go func() {
-					ticker := time.NewTicker(time.Millisecond * webrtcConfig.PLI)
+					ticker := time.NewTicker(webrtcConfig.PLI)
 					for {
 						select {
 						case <-ticker.C:
@@ -61,7 +61,7 @@ func (puber *WebRTCPublisher) OnEvent(event any) {
 					}
 				}()
 				if puber.Equal(v) {
-					puber.VideoTrack = NewH264(puber.Stream)
+					puber.VideoTrack = NewH264(puber.Stream, byte(codec.PayloadType))
 				}
 				for {
 					b := make([]byte, 1460)
