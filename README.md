@@ -50,6 +50,11 @@ Body: `SDP`
 Content-Type: `application/sdp`
 
 Response Body: `SDP`
+
+### 推流测试页面
+
+`/webrtc/test/publish`
+
 ## WHIP
 WebRTC-HTTP ingestion protocol
 用于WebRTC交换SDP信息的规范

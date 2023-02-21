@@ -10,8 +10,9 @@ import (
 	"go.uber.org/zap"
 	"m7s.live/engine/v4"
 
-	"github.com/pion/interceptor"
+	_ "embed"
 
+	"github.com/pion/interceptor"
 	. "github.com/pion/webrtc/v3"
 	"m7s.live/engine/v4/config"
 	"m7s.live/plugin/webrtc/v4/webrtc"
@@ -43,6 +44,10 @@ import (
 //		conn *net.UDPConn
 //		port int
 //	}
+
+//go:embed publish.html
+var publishHTML []byte
+
 var (
 	reg_level = regexp.MustCompile("profile-level-id=(4.+f)")
 )
@@ -166,6 +171,10 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+}
+
+func (conf *WebRTCConfig) Test_Publish(w http.ResponseWriter, r *http.Request) {
+	w.Write(publishHTML)
 }
 
 var webrtcConfig WebRTCConfig
