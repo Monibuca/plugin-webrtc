@@ -144,23 +144,53 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// puber.SetIO(puber.PeerConnection)
 	puber.OnICECandidate(func(ice *ICECandidate) {
 		if ice != nil {
 			puber.Info(ice.ToJSON().Candidate)
 		}
 	})
-	if _, err = puber.AddTransceiverFromKind(RTPCodecTypeVideo); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if _, err = puber.AddTransceiverFromKind(RTPCodecTypeAudio); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	puber.OnDataChannel(func(d *DataChannel) {
+		puber.Info("OnDataChannel", zap.String("label", d.Label()))
+		d.OnMessage(func(msg DataChannelMessage) {
+			puber.SDP = string(msg.Data[1:])
+			puber.Debug("dc message", zap.String("sdp", puber.SDP))
+			if err := puber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: puber.SDP}); err != nil {
+				return
+			}
+			if answer, err := puber.GetAnswer(); err == nil {
+				d.SendText(answer)
+			} else {
+				return
+			}
+			switch msg.Data[0] {
+			case '0':
+				puber.Stop()
+			case '1':
+				
+			}
+		})
+	})
+	// if _, err = puber.AddTransceiverFromKind(RTPCodecTypeVideo); err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+	// if _, err = puber.AddTransceiverFromKind(RTPCodecTypeAudio); err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
 	if err = WebRTCPlugin.Publish(streamPath, &puber); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	puber.OnConnectionStateChange(func(state PeerConnectionState) {
+		switch state {
+		case PeerConnectionStateConnected:
+
+		case PeerConnectionStateDisconnected, PeerConnectionStateFailed:
+			puber.Stop()
+		}
+	})
 	if err := puber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: puber.SDP}); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

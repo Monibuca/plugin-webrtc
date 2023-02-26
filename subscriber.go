@@ -86,7 +86,7 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 		}
 	case VideoRTP:
 		if suber.videoTrack != nil {
-			suber.videoTrack.WriteRTP(&v.Packet)
+			suber.videoTrack.WriteRTP(v.Packet)
 		} else if suber.DC != nil {
 			frame := suber.VideoReader.Frame
 			dataSize := uint32(frame.AVCC.ByteLength)
@@ -104,7 +104,7 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 			}
 		}
 	case AudioRTP:
-		suber.audioTrack.WriteRTP(&v.Packet)
+		suber.audioTrack.WriteRTP(v.Packet)
 	case ISubscriber:
 		suber.OnConnectionStateChange(func(pcs PeerConnectionState) {
 			suber.Info("Connection State has changed:" + pcs.String())

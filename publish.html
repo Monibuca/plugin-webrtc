@@ -2,54 +2,83 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>测试WebRTC推流</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试WebRTC推流</title>
 </head>
 
 <body>
-    <video id="video" width="640" height="480" autoplay muted />
+  <video id="video" width="640" height="480" autoplay muted>
+  </video>
+  <!-- <button id="sw" onclick="action()" type="button" style="width:100px;height:30px;display: block;">unpublish</button> -->
 </body>
 <script>
-    (async () => {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
-        });
-        document.getElementById('video').srcObject = mediaStream;
-        const pc = new RTCPeerConnection();
-        pc.addTransceiver('video', { direction: 'sendonly' });
-        pc.addTransceiver('audio', { direction: 'sendonly' });
-        pc.oniceconnectionstatechange = () => {
-            console.log('oniceconnectionstatechange', pc.iceConnectionState);
-        };
-        pc.onicecandidate = (e) => {
-            console.log('onicecandidate', e.candidate);
-        };
-        mediaStream.getTracks().forEach((t) => {
-            pc.addTrack(t, mediaStream);
-        });
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        const result = await fetch(
-            `/webrtc/push/live/webrtc`,
-            {
-                method: 'POST',
-                mode: 'cors',
-                cache: 'no-cache',
-                credentials: 'include',
-                redirect: 'follow',
-                referrerPolicy: 'no-referrer',
-                headers: { 'Content-Type': 'application/sdp' },
-                body: offer.sdp,
-            },
-        );
-        const remoteSdp = await result.text();
-        await pc.setRemoteDescription(
-            new RTCSessionDescription({ type: 'answer', sdp: remoteSdp }),
-        );
-    })()
+  let action = () => { console.log('action not set'); };
+  (async () => {
+    const mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+    document.getElementById('video').srcObject = mediaStream;
+    const pc = new RTCPeerConnection();
+
+    pc.oniceconnectionstatechange = () => {
+      console.log('oniceconnectionstatechange', pc.iceConnectionState);
+    };
+    pc.onicecandidate = (e) => {
+      console.log('onicecandidate', e.candidate);
+    };
+    // mediaStream.getTracks().forEach((t) => {
+    //     pc.addTrack(t, mediaStream);
+    // });
+    let videoTransceiver = pc.addTransceiver(mediaStream.getVideoTracks()[0], { direction: 'sendonly' });
+    let audioTransceiver = pc.addTransceiver(mediaStream.getAudioTracks()[0], { direction: 'sendonly' });
+    const dc = pc.createDataChannel('sdp');
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const result = await fetch(
+      `/webrtc/push/live/webrtc`,
+      {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'include',
+        redirect: 'follow',
+        referrerPolicy: 'no-referrer',
+        headers: { 'Content-Type': 'application/sdp' },
+        body: offer.sdp,
+      },
+    );
+    const remoteSdp = await result.text();
+    await pc.setRemoteDescription(
+      new RTCSessionDescription({ type: 'answer', sdp: remoteSdp }),
+    );
+    dc.onmessage = async (e) => {
+      await pc.setRemoteDescription(
+        new RTCSessionDescription({ type: 'answer', sdp: e.data }),
+      );
+    };
+    const publish = async () => {
+      videoTransceiver.direction = 'sendonly';
+      audioTransceiver.direction = 'sendonly';
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      dc.send('1' + offer.sdp);
+      action = unpublish;
+      document.getElementById('sw').innerText = 'unpublish';
+    };
+    const unpublish = async () => {
+      videoTransceiver.direction = 'inactive';
+      audioTransceiver.direction = 'inactive';
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      dc.send('0' + offer.sdp);
+      action = publish;
+      document.getElementById('sw').innerText = 'publish';
+    };
+    action = unpublish;
+  })()
 </script>
 
 </html>
