@@ -22,6 +22,32 @@ type WebRTCSubscriber struct {
 	flvHeadCache []byte
 }
 
+func (suber *WebRTCSubscriber) createDataChannel() {
+	if suber.DC != nil {
+		return
+	}
+	suber.DC, _ = suber.PeerConnection.CreateDataChannel(suber.Subscriber.Stream.Path, nil)
+	suber.flvHeadCache = make([]byte, 15)
+	suber.DC.Send(codec.FLVHeader)
+}
+func (suber *WebRTCSubscriber) sendAvByDatachannel(t byte, reader *track.AVRingReader) {
+	suber.flvHeadCache[0] = t
+	frame := reader.Frame
+	dataSize := uint32(frame.AVCC.ByteLength)
+	result := net.Buffers{suber.flvHeadCache[:11]}
+	result = append(result, frame.AVCC.ToBuffers()...)
+	ts := reader.AbsTime
+	util.PutBE(suber.flvHeadCache[1:4], dataSize)
+	util.PutBE(suber.flvHeadCache[4:7], ts)
+	suber.flvHeadCache[7] = byte(ts >> 24)
+	result = append(result, util.PutBE(suber.flvHeadCache[11:15], dataSize+11))
+	for _, data := range util.SplitBuffers(result, 65535) {
+		for _, d := range data {
+			suber.DC.Send(d)
+		}
+	}
+}
+
 func (suber *WebRTCSubscriber) OnEvent(event any) {
 	switch v := event.(type) {
 	case *track.Video:
@@ -42,7 +68,7 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 			return
 		}
 		if suber.videoTrack == nil {
-			suber.DC, _ = suber.PeerConnection.CreateDataChannel(suber.Subscriber.Stream.Path, nil)
+			suber.createDataChannel()
 		} else {
 			suber.videoSender, _ = suber.PeerConnection.AddTrack(suber.videoTrack)
 			go func() {
@@ -70,41 +96,34 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 		if v.CodecID == codec.CodecID_PCMU {
 			audioMimeType = MimeTypePCMU
 		}
-		if v.CodecID == codec.CodecID_PCMA || v.CodecID == codec.CodecID_PCMU {
+		switch v.CodecID {
+		case codec.CodecID_AAC:
+			suber.createDataChannel()
+		case codec.CodecID_PCMA, codec.CodecID_PCMU:
 			suber.audioTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: audioMimeType}, v.Name, suber.Subscriber.Stream.Path)
 			suber.audioSender, _ = suber.PeerConnection.AddTrack(suber.audioTrack)
 			suber.Subscriber.AddTrack(v) //接受这个track
 		}
 	case VideoDeConf:
 		if suber.DC != nil {
-			if suber.flvHeadCache == nil {
-				suber.flvHeadCache = make([]byte, 15)
-				suber.flvHeadCache[0] = 9
-				suber.DC.Send(codec.FLVHeader)
-			}
 			suber.DC.Send(util.ConcatBuffers(codec.VideoAVCC2FLV(0, v)))
+		}
+	case AudioDeConf:
+		if suber.DC != nil {
+			suber.DC.Send(util.ConcatBuffers(codec.AudioAVCC2FLV(0, v)))
 		}
 	case VideoRTP:
 		if suber.videoTrack != nil {
 			suber.videoTrack.WriteRTP(v.Packet)
 		} else if suber.DC != nil {
-			frame := suber.VideoReader.Frame
-			dataSize := uint32(frame.AVCC.ByteLength)
-			result := net.Buffers{suber.flvHeadCache[:11]}
-			result = append(result, frame.AVCC.ToBuffers()...)
-			ts := suber.VideoReader.AbsTime
-			util.PutBE(suber.flvHeadCache[1:4], dataSize)
-			util.PutBE(suber.flvHeadCache[4:7], ts)
-			suber.flvHeadCache[7] = byte(ts >> 24)
-			result = append(result, util.PutBE(suber.flvHeadCache[11:15], dataSize+11))
-			for _, data := range util.SplitBuffers(result, 65535) {
-				for _, d := range data {
-					suber.DC.Send(d)
-				}
-			}
+			suber.sendAvByDatachannel(9, &suber.VideoReader)
 		}
 	case AudioRTP:
-		suber.audioTrack.WriteRTP(v.Packet)
+		if suber.audioTrack != nil {
+			suber.audioTrack.WriteRTP(v.Packet)
+		} else if suber.DC != nil {
+			suber.sendAvByDatachannel(8, &suber.AudioReader)
+		}
 	case ISubscriber:
 		suber.OnConnectionStateChange(func(pcs PeerConnectionState) {
 			suber.Info("Connection State has changed:" + pcs.String())
