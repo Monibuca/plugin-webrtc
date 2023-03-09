@@ -5,14 +5,14 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>测试WebRTC推流</title>
+  <title>测试WebRTC拉流</title>
 </head>
 
 <body>
-  <video id="video" width="640" height="480" autoplay muted>
+  <video id="video" width="640" height="480" autoplay>
   </video>
   <!-- <button id="sw" onclick="action()" type="button" style="width:100px;height:30px;display: block;">unpublish</button> -->
-<pre>
+  <pre>
   <code id="remoteSdp">
 
   </code>
@@ -21,35 +21,26 @@
 <script>
   let action = () => { console.log('action not set'); };
   (async () => {
-    navigator.mediaDevices.enumerateDevices().then((devices) => {
-      devices.forEach((device) => {
-        console.log(device.kind + ": " + device.label + " id = " + device.deviceId);
-      });
-    });
-    const mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-    document.getElementById('video').srcObject = mediaStream;
-    const pc = new RTCPeerConnection();
 
+    const pc = new RTCPeerConnection();
+    pc.ontrack = (e) => {
+      console.log('ontrack', e);
+      if (e.streams.length === 0) return;
+      document.getElementById('video').srcObject = e.streams[0];
+    };
     pc.oniceconnectionstatechange = () => {
       console.log('oniceconnectionstatechange', pc.iceConnectionState);
     };
     pc.onicecandidate = (e) => {
       console.log('onicecandidate', e.candidate);
     };
-    mediaStream.id = 'live/webrtc';
-    mediaStream.getTracks().forEach((t) => {
-        pc.addTrack(t, mediaStream);
-    });
-    // const videoTransceiver = pc.addTransceiver(mediaStream.getVideoTracks()[0], { direction: 'sendonly' });
-    // const audioTransceiver = pc.addTransceiver(mediaStream.getAudioTracks()[0], { direction: 'sendonly' });
+    pc.addTransceiver('video', { direction: 'recvonly' });
+    pc.addTransceiver('audio', { direction: 'recvonly' });
     // const dc = pc.createDataChannel('sdp');
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     const result = await fetch(
-      `/webrtc/push/live/webrtc`,
+      `/webrtc/play/live/webrtc`,
       {
         method: 'POST',
         mode: 'cors',

@@ -47,7 +47,8 @@ import (
 
 //go:embed publish.html
 var publishHTML []byte
-
+//go:embed subscribe.html
+var subscribeHTML []byte
 var (
 	reg_level = regexp.MustCompile("profile-level-id=(4.+f)")
 )
@@ -144,7 +145,7 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// puber.SetIO(puber.PeerConnection)
+	puber.SetIO(puber.PeerConnection) //TODO: 单PC需要注释掉
 	puber.OnICECandidate(func(ice *ICECandidate) {
 		if ice != nil {
 			puber.Info(ice.ToJSON().Candidate)
@@ -206,7 +207,9 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 func (conf *WebRTCConfig) Test_Publish(w http.ResponseWriter, r *http.Request) {
 	w.Write(publishHTML)
 }
-
+func (conf *WebRTCConfig) Test_Subscribe(w http.ResponseWriter, r *http.Request) {
+	w.Write(subscribeHTML)
+}
 var webrtcConfig WebRTCConfig
 
 var WebRTCPlugin = engine.InstallPlugin(&webrtcConfig)

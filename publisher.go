@@ -1,7 +1,6 @@
 package webrtc
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/pion/rtcp"
@@ -75,7 +74,8 @@ func (puber *WebRTCPublisher) writeRTCP(track *TrackRemote) {
 		select {
 		case <-ticker.C:
 			if rtcpErr := puber.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: uint32(track.SSRC())}}); rtcpErr != nil {
-				fmt.Println(rtcpErr)
+				puber.Error("writeRTCP", zap.Error(rtcpErr))
+				return
 			}
 		case <-puber.Done():
 			return
