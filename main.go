@@ -47,6 +47,7 @@ import (
 
 //go:embed publish.html
 var publishHTML []byte
+
 //go:embed subscribe.html
 var subscribeHTML []byte
 var (
@@ -58,11 +59,11 @@ type WebRTCConfig struct {
 	config.Subscribe
 	ICEServers []string
 	PublicIP   []string
-	PortMin    uint16
-	PortMax    uint16
+	PortMin    uint16 `default:"9000"`
+	PortMax    uint16 `default:"10000"`
 
-	InvitePortFixed bool `default:"true"` // 设备将流发送的端口，是否固定  on 发送流到多路复用端口 如9000  off 自动从 mix_port - max_port 之间的值中  选一个可以用的端口
-	IceUdpMux       int  `default:"9000"` // 接收设备端rtp流的多路复用端口
+	InvitePortFixed bool `default:"false"` // 设备将流发送的端口，是否固定  on 发送流到多路复用端口 如9000  off 自动从 mix_port - max_port 之间的值中  选一个可以用的端口
+	IceUdpMux       int  `default:"9000"`  // 接收设备端rtp流的多路复用端口
 
 	PLI time.Duration `default:"2s"` // 视频流丢包后，发送PLI请求
 	m   MediaEngine
@@ -168,7 +169,7 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 			case '0':
 				puber.Stop()
 			case '1':
-				
+
 			}
 		})
 	})
@@ -210,6 +211,7 @@ func (conf *WebRTCConfig) Test_Publish(w http.ResponseWriter, r *http.Request) {
 func (conf *WebRTCConfig) Test_Subscribe(w http.ResponseWriter, r *http.Request) {
 	w.Write(subscribeHTML)
 }
+
 var webrtcConfig WebRTCConfig
 
 var WebRTCPlugin = engine.InstallPlugin(&webrtcConfig)

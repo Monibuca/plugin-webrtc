@@ -1,6 +1,7 @@
 package webrtc
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/pion/rtcp"
@@ -13,6 +14,8 @@ import (
 type WebRTCPublisher struct {
 	Publisher
 	WebRTCIO
+	audioTrack atomic.Pointer[TrackRemote]
+	videoTrack atomic.Pointer[TrackRemote]
 }
 
 func (puber *WebRTCPublisher) OnEvent(event any) {
@@ -26,6 +29,7 @@ func (puber *WebRTCPublisher) OnEvent(event any) {
 func (puber *WebRTCPublisher) onTrack(track *TrackRemote, receiver *RTPReceiver) {
 	puber.Info("onTrack", zap.String("kind", track.Kind().String()), zap.Uint8("payloadType", uint8(track.Codec().PayloadType)))
 	if codec := track.Codec(); track.Kind() == RTPCodecTypeAudio {
+		puber.audioTrack.Store(track)
 		if puber.AudioTrack == nil {
 			switch codec.PayloadType {
 			case 8:
@@ -38,6 +42,9 @@ func (puber *WebRTCPublisher) onTrack(track *TrackRemote, receiver *RTPReceiver)
 			}
 		}
 		for {
+			if puber.audioTrack.Load() != track {
+				return
+			}
 			rtpItem := puber.AudioTrack.GetRTPFromPool()
 			if i, _, err := track.Read(rtpItem.Value.Raw[:1460]); err == nil {
 				rtpItem.Value.Unmarshal(rtpItem.Value.Raw[:i])
@@ -49,11 +56,15 @@ func (puber *WebRTCPublisher) onTrack(track *TrackRemote, receiver *RTPReceiver)
 			}
 		}
 	} else {
+		puber.videoTrack.Store(track)
 		go puber.writeRTCP(track)
 		if puber.VideoTrack == nil {
 			puber.VideoTrack = NewH264(puber.Stream, byte(codec.PayloadType))
 		}
 		for {
+			if puber.videoTrack.Load() != track {
+				return
+			}
 			rtpItem := puber.VideoTrack.GetRTPFromPool()
 			if i, _, err := track.Read(rtpItem.Value.Raw[:1460]); err == nil {
 				rtpItem.Value.Unmarshal(rtpItem.Value.Raw[:i])
@@ -73,6 +84,9 @@ func (puber *WebRTCPublisher) writeRTCP(track *TrackRemote) {
 	for {
 		select {
 		case <-ticker.C:
+			if puber.videoTrack.Load() != track {
+				return
+			}
 			if rtcpErr := puber.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: uint32(track.SSRC())}}); rtcpErr != nil {
 				puber.Error("writeRTCP", zap.Error(rtcpErr))
 				return
