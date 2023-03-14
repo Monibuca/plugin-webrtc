@@ -17,11 +17,8 @@ https://github.com/Monibuca/plugin-webrtc
 webrtc:
   iceservers: []
   publicip: [] # 可以是数组也可以是字符串（内部自动转成数组）
-  portmin: 0
-  portmax: 0
-  inviteportfixed: true  // 设备将流发送的端口，是否固定  on 发送流到多路复用端口 如9000  off 自动从 mix_port - max_port 之间的值中  选一个可以用的端口
-  iceudpmux:       9000  // 接收设备端rtp流的多路复用端口
-  pli: 2000000000 # 2s
+  port: tcp:9000 # 可以是udp:8000-9000 范围端口，也可以udp:9000 单个端口
+  pli: 2s # 2s
 ```
 
 ### 本地测试无需修改配置，如果远程访问，则需要配置publicip
