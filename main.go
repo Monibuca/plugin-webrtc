@@ -122,7 +122,7 @@ func (conf *WebRTCConfig) OnEvent(event any) {
 
 func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/sdp")
-	streamPath := r.URL.Path[len("/webrtc/play/"):]
+	streamPath := r.URL.Path[len("/play/"):]
 	bytes, err := ioutil.ReadAll(r.Body)
 	var suber WebRTCSubscriber
 	suber.SDP = string(bytes)
@@ -151,7 +151,7 @@ func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 }
 
 func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
-	streamPath := r.URL.Path[len("/webrtc/push/"):]
+	streamPath := r.URL.Path[len("/push/"):]
 	w.Header().Set("Content-Type", "application/sdp")
 	bytes, err := ioutil.ReadAll(r.Body)
 	var puber WebRTCPublisher

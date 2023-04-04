@@ -9,7 +9,7 @@
 </head>
 
 <body>
-  <video id="video" width="640" height="480" autoplay>
+  <video id="video" width="640" height="480" autoplay muted controls>
   </video>
   <!-- <button id="sw" onclick="action()" type="button" style="width:100px;height:30px;display: block;">unpublish</button> -->
   <pre>
@@ -27,6 +27,7 @@
       console.log('ontrack', e);
       if (e.streams.length === 0) return;
       document.getElementById('video').srcObject = e.streams[0];
+      document.getElementById('video').play();
     };
     pc.oniceconnectionstatechange = () => {
       console.log('oniceconnectionstatechange', pc.iceConnectionState);
