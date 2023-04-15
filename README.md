@@ -20,6 +20,18 @@ webrtc:
   port: tcp:9000 # 可以是udp:8000-9000 范围端口，也可以udp:9000 单个端口
   pli: 2s # 2s
 ```
+### ICE服务器配置格式
+
+```yaml
+webrtc:
+  iceservers:
+    - urls: 
+        - stun:stun.l.google.com:19302
+        - turn:turn.example.org
+      username: user
+      credential: pass
+```
+
 
 ### 本地测试无需修改配置，如果远程访问，则需要配置publicip
 

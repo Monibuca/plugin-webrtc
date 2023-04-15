@@ -59,7 +59,7 @@ var (
 type WebRTCConfig struct {
 	config.Publish
 	config.Subscribe
-	ICEServers []string
+	ICEServers []ICEServer
 	PublicIP   []string
 	Port       string        `default:"tcp:9000"`
 	PLI        time.Duration `default:"2s"` // 视频流丢包后，发送PLI请求
@@ -71,12 +71,17 @@ type WebRTCConfig struct {
 func (conf *WebRTCConfig) OnEvent(event any) {
 	switch event.(type) {
 	case engine.FirstConfig:
+		if len(conf.ICEServers) > 0 {
+			for i := range conf.ICEServers {
+				b, _ := conf.ICEServers[i].MarshalJSON()
+				conf.ICEServers[i].UnmarshalJSON(b)
+			}
+		}
 		webrtc.RegisterCodecs(&conf.m)
 		i := &interceptor.Registry{}
 		if len(conf.PublicIP) > 0 {
 			conf.s.SetNAT1To1IPs(conf.PublicIP, ICECandidateTypeHost)
 		}
-
 		protocol, port, _ := strings.Cut(conf.Port, ":")
 		if protocol == "tcp" {
 			tcpport, _ := strconv.Atoi(port)
@@ -126,7 +131,9 @@ func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 	bytes, err := ioutil.ReadAll(r.Body)
 	var suber WebRTCSubscriber
 	suber.SDP = string(bytes)
-	if suber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{}); err != nil {
+	if suber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{
+		ICEServers: conf.ICEServers,
+	}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -156,7 +163,9 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 	bytes, err := ioutil.ReadAll(r.Body)
 	var puber WebRTCPublisher
 	puber.SDP = string(bytes)
-	if puber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{}); err != nil {
+	if puber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{
+		ICEServers: conf.ICEServers,
+	}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -235,7 +244,9 @@ func (conf *WebRTCConfig) Batch(w http.ResponseWriter, r *http.Request) {
 	bytes, err := ioutil.ReadAll(r.Body)
 	var suber WebRTCBatcher
 	suber.SDP = string(bytes)
-	if suber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{}); err != nil {
+	if suber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{
+		ICEServers: conf.ICEServers,
+	}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
