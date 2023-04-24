@@ -1,3 +1,4 @@
+_[English](https://github.com/Monibuca/plugin-webrtc/blob/v4/README.en.md) | 简体中文_
 # WebRTC 插件
 
 提供通过网页发布视频到monibuca，以及从monibuca拉流通过webrtc进行播放的功能，遵循WHIP规范

@@ -1,10 +1,13 @@
 package webrtc
 
 import (
+	"fmt"
 	"net"
+	"strings"
 
 	"github.com/pion/rtcp"
 	. "github.com/pion/webrtc/v3"
+	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/codec"
 	"m7s.live/engine/v4/track"
@@ -53,14 +56,14 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 	case *track.Video:
 		switch v.CodecID {
 		case codec.CodecID_H264:
-			pli := "420028"
-			// pli = fmt.Sprintf("%x", v.GetDecoderConfiguration().Raw[0][1:4])
-			// if !strings.Contains(suber.SDP, pli) {
-			// 	list := reg_level.FindAllStringSubmatch(suber.SDP, -1)
-			// 	if len(list) > 0 {
-			// 		pli = list[0][1]
-			// 	}
-			// }
+			pli := fmt.Sprintf("%x", v.SPS[1:4])
+			// pli := "42001f"
+			if !strings.Contains(suber.SDP, pli) {
+				list := reg_level.FindAllStringSubmatch(suber.SDP, -1)
+				if len(list) > 0 {
+					pli = list[0][1]
+				}
+			}
 			suber.videoTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, v.Name, suber.Subscriber.Stream.Path)
 		case codec.CodecID_H265:
 			// suber.videoTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH265, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", suber.Subscriber.Stream.Path)
@@ -114,6 +117,7 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 		}
 	case VideoRTP:
 		if suber.videoTrack != nil {
+			suber.Trace("video rtp", zap.Any("packet", v.Packet.Header))
 			suber.videoTrack.WriteRTP(v.Packet)
 		} else if suber.DC != nil {
 			suber.sendAvByDatachannel(9, &suber.VideoReader)
