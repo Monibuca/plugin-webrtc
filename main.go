@@ -5,8 +5,6 @@ import (
 	"net"
 	"net/http"
 	"regexp"
-	"strconv"
-	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -17,6 +15,7 @@ import (
 	"github.com/pion/interceptor"
 	. "github.com/pion/webrtc/v3"
 	"m7s.live/engine/v4/config"
+	"m7s.live/engine/v4/util"
 	"m7s.live/plugin/webrtc/v4/webrtc"
 )
 
@@ -61,6 +60,7 @@ type WebRTCConfig struct {
 	config.Subscribe
 	ICEServers []ICEServer
 	PublicIP   []string
+	PublicPort uint16
 	Port       string        `default:"tcp:9000"`
 	PLI        time.Duration `default:"2s"` // 视频流丢包后，发送PLI请求
 	m          MediaEngine
@@ -82,9 +82,12 @@ func (conf *WebRTCConfig) OnEvent(event any) {
 		if len(conf.PublicIP) > 0 {
 			conf.s.SetNAT1To1IPs(conf.PublicIP, ICECandidateTypeHost)
 		}
-		protocol, port, _ := strings.Cut(conf.Port, ":")
+		protocol, ports := util.Conf2Listener(conf.Port)
+		if len(ports) == 0 {
+			WebRTCPlugin.Fatal("webrtc port config error")
+		}
 		if protocol == "tcp" {
-			tcpport, _ := strconv.Atoi(port)
+			tcpport := int(ports[0])
 			tcpl, err := net.ListenTCP("tcp", &net.TCPAddr{
 				IP:   net.IP{0, 0, 0, 0},
 				Port: tcpport,
@@ -95,26 +98,20 @@ func (conf *WebRTCConfig) OnEvent(event any) {
 			WebRTCPlugin.Info("webrtc start listen", zap.Int("port", tcpport))
 			conf.s.SetICETCPMux(NewICETCPMux(nil, tcpl, 4096))
 			conf.s.SetNetworkTypes([]NetworkType{NetworkTypeTCP4, NetworkTypeTCP6})
+		} else if len(ports) == 2 {
+			conf.s.SetEphemeralUDPPortRange(ports[0], ports[1])
 		} else {
-			r := strings.Split(port, "-")
-			if len(r) == 2 {
-				min, _ := strconv.Atoi(r[0])
-				max, _ := strconv.Atoi(r[1])
-				conf.s.SetEphemeralUDPPortRange(uint16(min), uint16(max))
-			} else {
-				udpport, _ := strconv.Atoi(port)
-				// 创建共享WEBRTC端口 默认9000
-				udpListener, err := net.ListenUDP("udp", &net.UDPAddr{
-					IP:   net.IP{0, 0, 0, 0},
-					Port: udpport,
-				})
-				if err != nil {
-					WebRTCPlugin.Fatal("webrtc listener udp", zap.Error(err))
-				}
-				WebRTCPlugin.Info("webrtc start listen", zap.Int("port", udpport))
-				conf.s.SetICEUDPMux(NewICEUDPMux(nil, udpListener))
-				conf.s.SetNetworkTypes([]NetworkType{NetworkTypeUDP4, NetworkTypeUDP6})
+			// 创建共享WEBRTC端口 默认9000
+			udpListener, err := net.ListenUDP("udp", &net.UDPAddr{
+				IP:   net.IP{0, 0, 0, 0},
+				Port: int(ports[0]),
+			})
+			if err != nil {
+				WebRTCPlugin.Fatal("webrtc listener udp", zap.Error(err))
 			}
+			WebRTCPlugin.Info("webrtc start listen", zap.Uint16("port", ports[0]))
+			conf.s.SetICEUDPMux(NewICEUDPMux(nil, udpListener))
+			conf.s.SetNetworkTypes([]NetworkType{NetworkTypeUDP4, NetworkTypeUDP6})
 		}
 
 		if err := RegisterDefaultInterceptors(&conf.m, i); err != nil {
@@ -140,6 +137,9 @@ func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 	suber.OnICECandidate(func(ice *ICECandidate) {
 		if ice != nil {
 			suber.Info(ice.ToJSON().Candidate)
+			if conf.PublicPort != 0 {
+				ice.Port = conf.PublicPort
+			}
 		}
 	})
 	if err = suber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: suber.SDP}); err != nil {
