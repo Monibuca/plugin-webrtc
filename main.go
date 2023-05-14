@@ -60,7 +60,6 @@ type WebRTCConfig struct {
 	config.Subscribe
 	ICEServers []ICEServer
 	PublicIP   []string
-	PublicPort uint16
 	Port       string        `default:"tcp:9000"`
 	PLI        time.Duration `default:"2s"` // 视频流丢包后，发送PLI请求
 	m          MediaEngine
@@ -137,9 +136,6 @@ func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 	suber.OnICECandidate(func(ice *ICECandidate) {
 		if ice != nil {
 			suber.Info(ice.ToJSON().Candidate)
-			if conf.PublicPort != 0 {
-				ice.Port = conf.PublicPort
-			}
 		}
 	})
 	if err = suber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: suber.SDP}); err != nil {

@@ -120,13 +120,13 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 			suber.Trace("video rtp", zap.Any("packet", v.Packet.Header))
 			suber.videoTrack.WriteRTP(v.Packet)
 		} else if suber.DC != nil {
-			suber.sendAvByDatachannel(9, &suber.VideoReader)
+			suber.sendAvByDatachannel(9, suber.VideoReader)
 		}
 	case AudioRTP:
 		if suber.audioTrack != nil {
 			suber.audioTrack.WriteRTP(v.Packet)
 		} else if suber.DC != nil {
-			suber.sendAvByDatachannel(8, &suber.AudioReader)
+			suber.sendAvByDatachannel(8, suber.AudioReader)
 		}
 	case ISubscriber:
 		suber.OnConnectionStateChange(func(pcs PeerConnectionState) {
