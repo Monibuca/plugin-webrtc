@@ -12,7 +12,7 @@
   <video id="video" width="640" height="480" autoplay muted>
   </video>
   <!-- <button id="sw" onclick="action()" type="button" style="width:100px;height:30px;display: block;">unpublish</button> -->
-<pre>
+  <pre>
   <code id="remoteSdp">
 
   </code>
@@ -39,9 +39,12 @@
     pc.onicecandidate = (e) => {
       console.log('onicecandidate', e.candidate);
     };
-    mediaStream.id = 'live/webrtc';
+    const searchParams = new URLSearchParams(location.search);
+    const streamPath = searchParams.get('streamPath') || 'live/webrtc';
+    searchParams.delete('streamPath')
+    mediaStream.id = streamPath;
     mediaStream.getTracks().forEach((t) => {
-        pc.addTrack(t, mediaStream);
+      pc.addTrack(t, mediaStream);
     });
     // const videoTransceiver = pc.addTransceiver(mediaStream.getVideoTracks()[0], { direction: 'sendonly' });
     // const audioTransceiver = pc.addTransceiver(mediaStream.getAudioTracks()[0], { direction: 'sendonly' });
@@ -49,7 +52,7 @@
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     const result = await fetch(
-      `/webrtc/push/live/webrtc`,
+      `/webrtc/push/${streamPath}${location.search?`?${searchParams.toString()}`:''}`,
       {
         method: 'POST',
         mode: 'cors',

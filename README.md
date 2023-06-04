@@ -64,7 +64,13 @@ Response Body: `SDP`
 ### 推流测试页面
 
 `/webrtc/test/publish`
+- 可增加参数`?streamPath=xxx`指定推流地址，默认为`live/webrtc`
+- 可以增加其他推流参数
+### 播放测试页面
 
+`/webrtc/test/subscribe`
+- 可增加参数`?streamPath=xxx`指定播放地址，默认为`live/webrtc`
+- 可以增加其他播放参数
 ## WHIP
 WebRTC-HTTP ingestion protocol
 用于WebRTC交换SDP信息的规范

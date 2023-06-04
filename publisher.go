@@ -46,7 +46,7 @@ func (puber *WebRTCPublisher) onTrack(track *TrackRemote, receiver *RTPReceiver)
 				return
 			}
 			rtpItem := puber.AudioTrack.GetRTPFromPool()
-			if i, _, err := track.Read(rtpItem.Value.Raw[:1460]); err == nil {
+			if i, _, err := track.Read(rtpItem.Value.Raw); err == nil {
 				rtpItem.Value.Unmarshal(rtpItem.Value.Raw[:i])
 				puber.AudioTrack.WriteRTP(rtpItem)
 			} else {
@@ -66,7 +66,7 @@ func (puber *WebRTCPublisher) onTrack(track *TrackRemote, receiver *RTPReceiver)
 				return
 			}
 			rtpItem := puber.VideoTrack.GetRTPFromPool()
-			if i, _, err := track.Read(rtpItem.Value.Raw[:1460]); err == nil {
+			if i, _, err := track.Read(rtpItem.Value.Raw); err == nil {
 				rtpItem.Value.Unmarshal(rtpItem.Value.Raw[:i])
 				puber.VideoTrack.WriteRTP(rtpItem)
 			} else {

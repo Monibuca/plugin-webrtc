@@ -155,6 +155,9 @@ func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 
 func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 	streamPath := r.URL.Path[len("/push/"):]
+	if r.URL.RawQuery != "" {
+		streamPath += "?" + r.URL.RawQuery
+	}
 	w.Header().Set("Content-Type", "application/sdp")
 	bytes, err := ioutil.ReadAll(r.Body)
 	var puber WebRTCPublisher

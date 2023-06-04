@@ -67,7 +67,13 @@ Response Body: `SDP`
 ### Push Test Page
 
 `/webrtc/test/publish`
+- `?streamPath=xxx` The streamPath to publish, default is `live/webrtc`
+- you can add other query parameters to the URL
+### Play Test Page
 
+`/webrtc/test/subscribe`
+- `?streamPath=xxx` The streamPath to play, default is `live/webrtc`
+- you can add other query parameters to the URL
 ## WHIP
 
 WebRTC-HTTP ingestion protocol

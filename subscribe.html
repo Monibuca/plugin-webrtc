@@ -40,8 +40,11 @@
     // const dc = pc.createDataChannel('sdp');
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
+    const searchParams = new URLSearchParams(location.search);
+    const streamPath = searchParams.get('streamPath') || 'live/webrtc';
+    searchParams.delete('streamPath')
     const result = await fetch(
-      `/webrtc/play/live/webrtc`,
+      `/webrtc/play/${streamPath}${location.search?`?${searchParams.toString()}`:''}`,
       {
         method: 'POST',
         mode: 'cors',
