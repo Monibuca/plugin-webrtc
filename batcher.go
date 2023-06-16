@@ -73,13 +73,13 @@ func (suber *WebRTCBatcher) Signal(msg DataChannelMessage) {
 				sub.WebRTCIO = suber.WebRTCIO
 				if err = WebRTCPlugin.SubscribeExist(streamPath, sub); err == nil {
 					suber.subscribers = append(suber.subscribers, sub)
-					go func() {
+					go func(streamPath string) {
 						sub.PlayRTP()
-						if sub.audioSender != nil {
-							suber.RemoveTrack(sub.audioSender)
+						if sub.audio.RTPSender != nil {
+							suber.RemoveTrack(sub.audio.RTPSender )
 						}
-						if sub.videoSender != nil {
-							suber.RemoveTrack(sub.videoSender)
+						if sub.video.RTPSender != nil {
+							suber.RemoveTrack(sub.video.RTPSender)
 						}
 						if sub.DC != nil {
 							sub.DC.Close()
@@ -87,7 +87,7 @@ func (suber *WebRTCBatcher) Signal(msg DataChannelMessage) {
 						removeMap["streamPath"] = streamPath
 						b, _ := json.Marshal(removeMap)
 						suber.signalChannel.SendText(string(b))
-					}()
+					}(streamPath)
 				} else {
 					removeMap["streamPath"] = streamPath
 					b, _ := json.Marshal(removeMap)

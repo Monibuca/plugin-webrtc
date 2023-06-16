@@ -230,6 +230,9 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 func (conf *WebRTCConfig) Test_Publish(w http.ResponseWriter, r *http.Request) {
 	w.Write(publishHTML)
 }
+func (conf *WebRTCConfig) Test_ScreenShare(w http.ResponseWriter, r *http.Request) {
+	w.Write(publishHTML)
+}
 func (conf *WebRTCConfig) Test_Subscribe(w http.ResponseWriter, r *http.Request) {
 	w.Write(subscribeHTML)
 }

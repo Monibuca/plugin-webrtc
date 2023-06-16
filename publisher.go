@@ -68,6 +68,11 @@ func (puber *WebRTCPublisher) onTrack(track *TrackRemote, receiver *RTPReceiver)
 			rtpItem := puber.VideoTrack.GetRTPFromPool()
 			if i, _, err := track.Read(rtpItem.Value.Raw); err == nil {
 				rtpItem.Value.Unmarshal(rtpItem.Value.Raw[:i])
+				if rtpItem.Value.Extension {
+					for _, id := range rtpItem.Value.GetExtensionIDs() {
+						puber.Debug("extension", zap.Uint8("id", id), zap.Binary("value", rtpItem.Value.GetExtension(id)))
+					}
+				}
 				puber.VideoTrack.WriteRTP(rtpItem)
 			} else {
 				puber.Info("track stop", zap.String("kind", track.Kind().String()), zap.Error(err))

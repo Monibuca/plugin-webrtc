@@ -7,6 +7,7 @@ import (
 type WebRTCIO struct {
 	*PeerConnection
 	SDP string
+	// LocalSDP *sdp.SessionDescription
 }
 
 func (IO *WebRTCIO) GetAnswer() (string, error) {
@@ -15,6 +16,10 @@ func (IO *WebRTCIO) GetAnswer() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// IO.LocalSDP, err = answer.Unmarshal()
+	// if err != nil {
+	// 	return "", err
+	// }
 	gatherComplete := GatheringCompletePromise(IO.PeerConnection)
 	if err := IO.SetLocalDescription(answer); err != nil {
 		return "", err

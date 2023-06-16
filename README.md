@@ -66,6 +66,12 @@ Response Body: `SDP`
 `/webrtc/test/publish`
 - 可增加参数`?streamPath=xxx`指定推流地址，默认为`live/webrtc`
 - 可以增加其他推流参数
+
+### 屏幕分享测试
+  
+`/webrtc/test/screenshare`
+- 可增加参数`?streamPath=xxx`指定推流地址，默认为`live/webrtc`
+- 可以增加其他推流参数
 ### 播放测试页面
 
 `/webrtc/test/subscribe`

@@ -69,6 +69,13 @@ Response Body: `SDP`
 `/webrtc/test/publish`
 - `?streamPath=xxx` The streamPath to publish, default is `live/webrtc`
 - you can add other query parameters to the URL
+
+### ScreenShare Test Page
+
+`/webrtc/test/screenshare`
+- `?streamPath=xxx` The streamPath to publish, default is `live/webrtc`
+- you can add other query parameters to the URL
+
 ### Play Test Page
 
 `/webrtc/test/subscribe`
