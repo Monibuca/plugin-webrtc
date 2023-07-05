@@ -21,9 +21,11 @@ type trackSender struct {
 type WebRTCSubscriber struct {
 	Subscriber
 	WebRTCIO
-	audio trackSender
-	video trackSender
-	DC    *DataChannel
+	audio       trackSender
+	video       trackSender
+	DC          *DataChannel
+	videoTracks []*track.Video
+	audioTracks []*track.Audio
 	// flvHeadCache []byte
 }
 
@@ -62,37 +64,39 @@ func (suber *WebRTCSubscriber) createDataChannel() {
 func (suber *WebRTCSubscriber) OnEvent(event any) {
 	switch v := event.(type) {
 	case *track.Video:
-		switch v.CodecID {
-		case codec.CodecID_H264:
-			pli := fmt.Sprintf("%x", v.SPS[1:4])
-			// pli := "42001f"
-			if !strings.Contains(suber.SDP, pli) {
-				list := reg_level.FindAllStringSubmatch(suber.SDP, -1)
-				if len(list) > 0 {
-					pli = list[0][1]
-				}
-			}
-			suber.video.TrackLocalStaticRTP, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, v.Name, suber.Subscriber.Stream.Path)
-		case codec.CodecID_H265:
-			suber.createDataChannel()
-			// suber.videoTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH265, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", suber.Subscriber.Stream.Path)
-		default:
-			return
-		}
-		suber.Subscriber.AddTrack(v) //接受这个track
+		suber.videoTracks = append(suber.videoTracks, v)
+		// switch v.CodecID {
+		// case codec.CodecID_H264:
+		// 	pli := fmt.Sprintf("%x", v.SPS[1:4])
+		// 	// pli := "42001f"
+		// 	if !strings.Contains(suber.SDP, pli) {
+		// 		list := reg_level.FindAllStringSubmatch(suber.SDP, -1)
+		// 		if len(list) > 0 {
+		// 			pli = list[0][1]
+		// 		}
+		// 	}
+		// 	suber.video.TrackLocalStaticRTP, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, v.Name, suber.Subscriber.Stream.Path)
+		// case codec.CodecID_H265:
+		// 	suber.createDataChannel()
+		// 	// suber.videoTrack, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH265, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, "video", suber.Subscriber.Stream.Path)
+		// default:
+		// 	return
+		// }
+		// suber.Subscriber.AddTrack(v) //接受这个track
 	case *track.Audio:
-		audioMimeType := MimeTypePCMA
-		if v.CodecID == codec.CodecID_PCMU {
-			audioMimeType = MimeTypePCMU
-		}
-		switch v.CodecID {
-		case codec.CodecID_AAC:
-			suber.createDataChannel()
-		case codec.CodecID_PCMA, codec.CodecID_PCMU:
-			suber.audio.TrackLocalStaticRTP, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: audioMimeType}, v.Name, suber.Subscriber.Stream.Path)
-			//suber.audio.RTPSender, _ = suber.PeerConnection.AddTrack(suber.audio.TrackLocalStaticRTP)
-		}
-		suber.Subscriber.AddTrack(v) //接受这个track
+		// audioMimeType := MimeTypePCMA
+		// if v.CodecID == codec.CodecID_PCMU {
+		// 	audioMimeType = MimeTypePCMU
+		// }
+		// switch v.CodecID {
+		// case codec.CodecID_AAC:
+		// 	suber.createDataChannel()
+		// case codec.CodecID_PCMA, codec.CodecID_PCMU:
+		// 	suber.audio.TrackLocalStaticRTP, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: audioMimeType}, v.Name, suber.Subscriber.Stream.Path)
+		// 	//suber.audio.RTPSender, _ = suber.PeerConnection.AddTrack(suber.audio.TrackLocalStaticRTP)
+		// }
+		// suber.Subscriber.AddTrack(v) //接受这个track
+		suber.audioTracks = append(suber.audioTracks, v)
 	// case VideoDeConf:
 	// 	if suber.DC != nil {
 	// 		suber.queueDCData(codec.VideoAVCC2FLV(0, v)...)
@@ -120,32 +124,73 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 			suber.queueDCData(data...)
 		}
 	case ISubscriber:
-		if suber.DC == nil {
-			if suber.audio.TrackLocalStaticRTP != nil {
-				suber.audio.RTPSender, _ = suber.PeerConnection.AddTrack(suber.audio.TrackLocalStaticRTP)
-			}
-			if suber.video.TrackLocalStaticRTP != nil {
-				suber.video.RTPSender, _ = suber.PeerConnection.AddTrack(suber.video.TrackLocalStaticRTP)
-				go func() {
-					rtcpBuf := make([]byte, 1500)
-					for {
-						if n, _, rtcpErr := suber.video.Read(rtcpBuf); rtcpErr != nil {
+		vm := make(map[codec.VideoCodecID]*track.Video)
+		am := make(map[codec.AudioCodecID]*track.Audio)
+		for _, track := range suber.videoTracks {
+			vm[track.CodecID] = track
+		}
+		for _, track := range suber.audioTracks {
+			am[track.CodecID] = track
+		}
+		if (vm[codec.CodecID_H264] != nil || vm[codec.CodecID_H265] == nil) && (am[codec.CodecID_PCMA] != nil || am[codec.CodecID_PCMU] != nil || am[codec.CodecID_AAC] == nil) {
+			video := vm[codec.CodecID_H264]
+			if video != nil {
+				suber.Subscriber.AddTrack(video)
+				pli := fmt.Sprintf("%x", video.SPS[1:4])
+				// pli := "42001f"
+				if !strings.Contains(suber.SDP, pli) {
+					list := reg_level.FindAllStringSubmatch(suber.SDP, -1)
+					if len(list) > 0 {
+						pli = list[0][1]
+					}
+				}
+				suber.video.TrackLocalStaticRTP, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: MimeTypeH264, SDPFmtpLine: "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=" + pli}, video.Name, suber.Subscriber.Stream.Path)
+				if suber.video.TrackLocalStaticRTP != nil {
+					suber.video.RTPSender, _ = suber.PeerConnection.AddTrack(suber.video.TrackLocalStaticRTP)
+					go func() {
+						rtcpBuf := make([]byte, 1500)
+						for {
+							if n, _, rtcpErr := suber.video.Read(rtcpBuf); rtcpErr != nil {
 
-							return
-						} else {
-							if p, err := rtcp.Unmarshal(rtcpBuf[:n]); err == nil {
-								for _, pp := range p {
-									switch pp.(type) {
-									case *rtcp.PictureLossIndication:
-										// fmt.Println("PictureLossIndication")
+								return
+							} else {
+								if p, err := rtcp.Unmarshal(rtcpBuf[:n]); err == nil {
+									for _, pp := range p {
+										switch pp.(type) {
+										case *rtcp.PictureLossIndication:
+											// fmt.Println("PictureLossIndication")
+										}
 									}
 								}
 							}
 						}
-					}
-				}()
+					}()
+				}
+			}
+			var audio *track.Audio
+			audioMimeType := MimeTypePCMA
+			if am[codec.CodecID_PCMA] != nil {
+				audio = am[codec.CodecID_PCMA]
+			} else if am[codec.CodecID_PCMU] != nil {
+				audioMimeType = MimeTypePCMU
+				audio = am[codec.CodecID_PCMU]
+			} else {
+
+			}
+			if audio != nil {
+				suber.Subscriber.AddTrack(audio)
+				suber.audio.TrackLocalStaticRTP, _ = NewTrackLocalStaticRTP(RTPCodecCapability{MimeType: audioMimeType}, audio.Name, suber.Subscriber.Stream.Path)
+				if suber.audio.TrackLocalStaticRTP != nil {
+					suber.audio.RTPSender, _ = suber.PeerConnection.AddTrack(suber.audio.TrackLocalStaticRTP)
+				}
 			}
 		} else {
+			if vm[codec.CodecID_H265] != nil {
+				suber.Subscriber.AddTrack(vm[codec.CodecID_H265])
+			}
+			if am[codec.CodecID_AAC] != nil {
+				suber.Subscriber.AddTrack(am[codec.CodecID_AAC])
+			}
 			suber.DC.OnOpen(func() {
 				suber.DC.Send(codec.FLVHeader)
 				go suber.PlayFLV()
