@@ -5,6 +5,7 @@ import (
 
 	. "github.com/pion/webrtc/v3"
 	"go.uber.org/zap"
+	"m7s.live/engine/v4/codec"
 )
 
 type Signal struct {
@@ -55,6 +56,11 @@ func (suber *WebRTCBatcher) Start() (err error) {
 	return
 }
 
+func (suber *WebRTCBatcher) RemoveSubscribe(streamPath string) {
+	b, _ := json.Marshal(map[string]string{"type": "remove", "streamPath": streamPath})
+	suber.signalChannel.SendText(string(b))
+}
+
 func (suber *WebRTCBatcher) Signal(msg DataChannelMessage) {
 	var s Signal
 	var removeMap = map[string]string{"type": "remove", "streamPath": ""}
@@ -74,19 +80,25 @@ func (suber *WebRTCBatcher) Signal(msg DataChannelMessage) {
 				if err = WebRTCPlugin.SubscribeExist(streamPath, sub); err == nil {
 					suber.subscribers = append(suber.subscribers, sub)
 					go func(streamPath string) {
-						sub.PlayRTP()
-						if sub.audio.RTPSender != nil {
-							suber.RemoveTrack(sub.audio.RTPSender )
+						if sub.DC == nil {
+							sub.PlayRTP()
+							if sub.audio.RTPSender != nil {
+								suber.RemoveTrack(sub.audio.RTPSender)
+							}
+							if sub.video.RTPSender != nil {
+								suber.RemoveTrack(sub.video.RTPSender)
+							}
+							suber.RemoveSubscribe(streamPath)
+						} else {
+							sub.DC.OnOpen(func() {
+								sub.DC.Send(codec.FLVHeader)
+								go func() {
+									sub.PlayFLV()
+									sub.DC.Close()
+									suber.RemoveSubscribe(streamPath)
+								}()
+							})
 						}
-						if sub.video.RTPSender != nil {
-							suber.RemoveTrack(sub.video.RTPSender)
-						}
-						if sub.DC != nil {
-							sub.DC.Close()
-						}
-						removeMap["streamPath"] = streamPath
-						b, _ := json.Marshal(removeMap)
-						suber.signalChannel.SendText(string(b))
 					}(streamPath)
 				} else {
 					removeMap["streamPath"] = streamPath
