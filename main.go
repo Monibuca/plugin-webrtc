@@ -127,6 +127,7 @@ func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 	bytes, err := ioutil.ReadAll(r.Body)
 	var suber WebRTCSubscriber
 	suber.SDP = string(bytes)
+	suber.RemoteAddr = r.RemoteAddr
 	if suber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{
 		ICEServers: conf.ICEServers,
 	}); err != nil {
@@ -245,6 +246,7 @@ func (conf *WebRTCConfig) Batch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/sdp")
 	bytes, err := ioutil.ReadAll(r.Body)
 	var suber WebRTCBatcher
+	suber.RemoteAddr = r.RemoteAddr
 	suber.SDP = string(bytes)
 	if suber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{
 		ICEServers: conf.ICEServers,

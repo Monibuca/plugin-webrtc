@@ -6,6 +6,7 @@ import (
 
 	"github.com/pion/rtcp"
 	. "github.com/pion/webrtc/v3"
+	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/codec"
 	"m7s.live/engine/v4/track"
@@ -218,7 +219,7 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 					}()
 				}
 			case PeerConnectionStateDisconnected, PeerConnectionStateFailed:
-				suber.Stop()
+				suber.Stop(zap.String("reason", pcs.String()))
 			}
 		})
 	default:

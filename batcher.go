@@ -2,6 +2,7 @@ package webrtc
 
 import (
 	"encoding/json"
+	"fmt"
 
 	. "github.com/pion/webrtc/v3"
 	"go.uber.org/zap"
@@ -72,11 +73,12 @@ func (suber *WebRTCBatcher) Start() (err error) {
 		case PeerConnectionStateConnected:
 
 		case PeerConnectionStateDisconnected, PeerConnectionStateFailed:
+			zr := zap.String("reason", pcs.String())
 			for _, sub := range suber.subscribers {
-				go sub.Stop()
+				go sub.Stop(zr)
 			}
 			if suber.Publisher.Stream != nil {
-				suber.Publisher.Stop()
+				suber.Publisher.Stop(zr)
 			}
 			suber.PeerConnection.Close()
 		}
@@ -110,8 +112,9 @@ func (suber *WebRTCBatcher) Signal(msg DataChannelMessage) {
 				WebRTCPlugin.Error("Signal SetRemoteDescription", zap.Error(err))
 				return
 			}
-			for _, streamPath := range s.StreamList {
+			for i, streamPath := range s.StreamList {
 				sub := &WebRTCBatchSubscriber{}
+				sub.ID = fmt.Sprintf("%s_%d", suber.ID, i)
 				sub.WebRTCIO = suber.WebRTCIO
 				if err = WebRTCPlugin.SubscribeExist(streamPath, sub); err == nil {
 					suber.subscribers = append(suber.subscribers, sub)
