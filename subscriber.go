@@ -89,7 +89,7 @@ func (suber *WebRTCSubscriber) OnSubscribe() {
 					rtcpBuf := make([]byte, 1500)
 					for {
 						if n, _, rtcpErr := suber.video.Read(rtcpBuf); rtcpErr != nil {
-
+							suber.Warn("rtcp read error", zap.Error(rtcpErr))
 							return
 						} else {
 							if p, err := rtcp.Unmarshal(rtcpBuf[:n]); err == nil {
