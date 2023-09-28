@@ -30,10 +30,13 @@ type WebRTCSubscriber struct {
 	// flvHeadCache []byte
 }
 
-func (suber *WebRTCSubscriber) queueDCData(data ...[]byte) {
+func (suber *WebRTCSubscriber) queueDCData(data ...[]byte) (err error) {
 	for _, d := range data {
-		suber.DC.Send(d)
+		if err = suber.DC.Send(d); err != nil {
+			return
+		}
 	}
+	return
 }
 
 func (suber *WebRTCSubscriber) createDataChannel() {
@@ -135,6 +138,7 @@ func (suber *WebRTCSubscriber) OnSubscribe() {
 }
 
 func (suber *WebRTCSubscriber) OnEvent(event any) {
+	var err error
 	switch v := event.(type) {
 	case *track.Video:
 		suber.videoTracks = append(suber.videoTracks, v)
@@ -180,21 +184,30 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 	// 	}
 	case VideoRTP:
 		// if suber.video.TrackLocalStaticRTP != nil {
-		suber.video.WriteRTP(v.Packet)
+		if err = suber.video.WriteRTP(v.Packet); err != nil {
+			suber.Stop(zap.Error(err))
+			return
+		}
 		// } else if suber.DC != nil && suber.VideoReader.Frame.Sequence != suber.video.seq {
 		// 	suber.video.seq = suber.VideoReader.Frame.Sequence
 		// 	suber.sendAvByDatachannel(9, suber.VideoReader)
 		// }
 	case AudioRTP:
 		// if suber.audio.TrackLocalStaticRTP != nil {
-		suber.audio.WriteRTP(v.Packet)
+		if err = suber.audio.WriteRTP(v.Packet); err != nil {
+			suber.Stop(zap.Error(err))
+			return
+		}
 		// } else if suber.DC != nil && suber.AudioReader.Frame.Sequence != suber.audio.seq {
 		// 	suber.audio.seq = suber.AudioReader.Frame.Sequence
 		// 	suber.sendAvByDatachannel(8, suber.AudioReader)
 		// }
 	case FLVFrame:
 		for _, data := range util.SplitBuffers(v, 65535) {
-			suber.queueDCData(data...)
+			if err = suber.queueDCData(data...); err != nil {
+				suber.Stop(zap.Error(err))
+				return
+			}
 		}
 	case ISubscriber:
 		suber.OnSubscribe()
