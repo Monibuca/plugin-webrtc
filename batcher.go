@@ -7,6 +7,7 @@ import (
 	. "github.com/pion/webrtc/v3"
 	"go.uber.org/zap"
 	"m7s.live/engine/v4/codec"
+	"m7s.live/engine/v4/util"
 )
 
 type Signal struct {
@@ -48,7 +49,7 @@ func NewAnswerSingal(sdp string) string {
 type WebRTCBatcher struct {
 	PageSize      int
 	PageNum       int
-	subscribers   []*WebRTCBatchSubscriber
+	subscribers   util.Map[string,*WebRTCBatchSubscriber]
 	signalChannel *DataChannel
 	WebRTCPublisher
 }
@@ -74,9 +75,9 @@ func (suber *WebRTCBatcher) Start() (err error) {
 
 		case PeerConnectionStateDisconnected, PeerConnectionStateFailed:
 			zr := zap.String("reason", pcs.String())
-			for _, sub := range suber.subscribers {
-				go sub.Stop(zr)
-			}
+			suber.subscribers.Range(func(key string, value *WebRTCBatchSubscriber) {
+				value.Stop(zr)
+			})
 			if suber.Publisher.Stream != nil {
 				suber.Publisher.Stop(zr)
 			}
@@ -112,12 +113,15 @@ func (suber *WebRTCBatcher) Signal(msg DataChannelMessage) {
 				WebRTCPlugin.Error("Signal SetRemoteDescription", zap.Error(err))
 				return
 			}
-			for i, streamPath := range s.StreamList {
+			for _, streamPath := range s.StreamList {
+				if suber.subscribers.Has(streamPath) {
+					continue
+				}
 				sub := &WebRTCBatchSubscriber{}
-				sub.ID = fmt.Sprintf("%s_%d", suber.ID, i)
+				sub.ID = fmt.Sprintf("%s_%s", suber.ID, streamPath)
 				sub.WebRTCIO = suber.WebRTCIO
 				if err = WebRTCPlugin.SubscribeExist(streamPath, sub); err == nil {
-					suber.subscribers = append(suber.subscribers, sub)
+					suber.subscribers.Add(streamPath, sub)
 					go func(streamPath string) {
 						if sub.DC == nil {
 							sub.PlayRTP()
