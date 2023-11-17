@@ -81,4 +81,4 @@ Response Body: `SDP`
 WebRTC-HTTP ingestion protocol
 用于WebRTC交换SDP信息的规范
 
-[WHIP ietf](https://datatracker.ietf.org/doc/html/draft-ietf-wish-whip-02)
+[WHIP ietf](https://datatracker.ietf.org/doc/html/draft-ietf-wish-whip)

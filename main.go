@@ -1,10 +1,12 @@
 package webrtc
 
 import (
-	"io/ioutil"
+	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -13,7 +15,7 @@ import (
 	_ "embed"
 
 	"github.com/pion/interceptor"
-	. "github.com/pion/webrtc/v3"
+	. "github.com/pion/webrtc/v4"
 	"m7s.live/engine/v4/config"
 	"m7s.live/engine/v4/util"
 	"m7s.live/plugin/webrtc/v4/webrtc"
@@ -61,7 +63,9 @@ type WebRTCConfig struct {
 	ICEServers []ICEServer
 	PublicIP   []string
 	Port       string        `default:"tcp:9000"`
-	PLI        time.Duration `default:"2s"` // 视频流丢包后，发送PLI请求
+	PLI        time.Duration `default:"2s"`   // 视频流丢包后，发送PLI请求
+	EnableOpus bool          `default:"true"` // 是否启用opus编码
+	EnableAv1  bool          `default:"true"` // 是否启用av1编码
 	m          MediaEngine
 	s          SettingEngine
 	api        *API
@@ -77,6 +81,18 @@ func (conf *WebRTCConfig) OnEvent(event any) {
 			}
 		}
 		webrtc.RegisterCodecs(&conf.m)
+		if conf.EnableOpus {
+			conf.m.RegisterCodec(RTPCodecParameters{
+				RTPCodecCapability: RTPCodecCapability{MimeTypeOpus, 48000, 2, "minptime=10;useinbandfec=1", nil},
+				PayloadType:        111,
+			}, RTPCodecTypeAudio)
+		}
+		if conf.EnableAv1 {
+			conf.m.RegisterCodec(RTPCodecParameters{
+				RTPCodecCapability: RTPCodecCapability{MimeTypeAV1, 90000, 0, "profile=2;level-idx=8;tier=1", nil},
+				PayloadType:        45,
+			}, RTPCodecTypeVideo)
+		}
 		i := &interceptor.Registry{}
 		if len(conf.PublicIP) > 0 {
 			conf.s.SetNAT1To1IPs(conf.PublicIP, ICECandidateTypeHost)
@@ -124,7 +140,7 @@ func (conf *WebRTCConfig) OnEvent(event any) {
 func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/sdp")
 	streamPath := r.URL.Path[len("/play/"):]
-	bytes, err := ioutil.ReadAll(r.Body)
+	bytes, err := io.ReadAll(r.Body)
 	var suber WebRTCSubscriber
 	suber.SDP = string(bytes)
 	suber.RemoteAddr = r.RemoteAddr
@@ -154,13 +170,26 @@ func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// https://datatracker.ietf.org/doc/html/draft-ietf-wish-whip
 func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 	streamPath := r.URL.Path[len("/push/"):]
-	if r.URL.RawQuery != "" {
-		streamPath += "?" + r.URL.RawQuery
+	rawQuery := r.URL.RawQuery
+	auth := r.Header.Get("Authorization")
+	if strings.HasPrefix(auth, "Bearer ") {
+		auth = auth[len("Bearer "):]
+		if rawQuery != "" {
+			rawQuery += "&bearer=" + auth
+		} else {
+			rawQuery = "bearer=" + auth
+		}
+		WebRTCPlugin.Info("push", zap.String("stream", streamPath), zap.String("bearer", auth))
 	}
 	w.Header().Set("Content-Type", "application/sdp")
-	bytes, err := ioutil.ReadAll(r.Body)
+	w.Header().Set("Location", "/webrtc/api/stop/push/"+streamPath)
+	if rawQuery != "" {
+		streamPath += "?" + rawQuery
+	}
+	bytes, err := io.ReadAll(r.Body)
 	var puber WebRTCPublisher
 	puber.SDP = string(bytes)
 	if puber.PeerConnection, err = conf.api.NewPeerConnection(Configuration{
@@ -209,6 +238,7 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	puber.OnConnectionStateChange(func(state PeerConnectionState) {
+		puber.Info("Connection State has changed:" + state.String())
 		switch state {
 		case PeerConnectionStateConnected:
 
@@ -221,7 +251,8 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if answer, err := puber.GetAnswer(); err == nil {
-		w.Write([]byte(answer))
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprint(w, answer)
 	} else {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -244,7 +275,7 @@ var WebRTCPlugin = engine.InstallPlugin(&webrtcConfig)
 
 func (conf *WebRTCConfig) Batch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/sdp")
-	bytes, err := ioutil.ReadAll(r.Body)
+	bytes, err := io.ReadAll(r.Body)
 	var suber WebRTCBatcher
 	suber.RemoteAddr = r.RemoteAddr
 	suber.SDP = string(bytes)
