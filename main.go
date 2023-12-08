@@ -140,6 +140,7 @@ func (conf *WebRTCConfig) OnEvent(event any) {
 func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/sdp")
 	streamPath := r.URL.Path[len("/play/"):]
+	rawQuery := r.URL.RawQuery
 	bytes, err := io.ReadAll(r.Body)
 	var suber WebRTCSubscriber
 	suber.SDP = string(bytes)
@@ -158,6 +159,9 @@ func (conf *WebRTCConfig) Play_(w http.ResponseWriter, r *http.Request) {
 	if err = suber.SetRemoteDescription(SessionDescription{Type: SDPTypeOffer, SDP: suber.SDP}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	if rawQuery != "" {
+		streamPath += "?" + rawQuery
 	}
 	if err = WebRTCPlugin.Subscribe(streamPath, &suber); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
