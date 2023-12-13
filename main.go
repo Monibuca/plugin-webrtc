@@ -48,24 +48,27 @@ import (
 //		port int
 //	}
 
-//go:embed publish.html
-var publishHTML []byte
-
-//go:embed subscribe.html
-var subscribeHTML []byte
 var (
-	reg_level = regexp.MustCompile("profile-level-id=(4.+f)")
+	//go:embed publish.html
+	publishHTML []byte
+
+	//go:embed subscribe.html
+	subscribeHTML []byte
+	webrtcConfig  WebRTCConfig
+	reg_level     = regexp.MustCompile("profile-level-id=(4.+f)")
+	WebRTCPlugin  = engine.InstallPlugin(&webrtcConfig)
 )
 
 type WebRTCConfig struct {
 	config.Publish
 	config.Subscribe
-	ICEServers []ICEServer
-	PublicIP   []string
-	Port       string        `default:"tcp:9000"`
-	PLI        time.Duration `default:"2s"`   // 视频流丢包后，发送PLI请求
-	EnableOpus bool          `default:"true"` // 是否启用opus编码
-	EnableAv1  bool          `default:"true"` // 是否启用av1编码
+	ICEServers []ICEServer   `desc:"ice服务器配置"`
+	PublicIP   string        `desc:"公网IP"`
+	PublicIPv6 string        `desc:"公网IPv6"`
+	Port       string        `default:"tcp:9000" desc:"监听端口"`
+	PLI        time.Duration `default:"2s" desc:"发送PLI请求间隔"`    // 视频流丢包后，发送PLI请求
+	EnableOpus bool          `default:"true" desc:"是否启用opus编码"` // 是否启用opus编码
+	EnableAv1  bool          `default:"true" desc:"是否启用av1编码"`  // 是否启用av1编码
 	m          MediaEngine
 	s          SettingEngine
 	api        *API
@@ -94,8 +97,12 @@ func (conf *WebRTCConfig) OnEvent(event any) {
 			}, RTPCodecTypeVideo)
 		}
 		i := &interceptor.Registry{}
-		if len(conf.PublicIP) > 0 {
-			conf.s.SetNAT1To1IPs(conf.PublicIP, ICECandidateTypeHost)
+		if conf.PublicIP != "" {
+			ips := []string{conf.PublicIP}
+			if conf.PublicIPv6 != "" {
+				ips = append(ips, conf.PublicIPv6)
+			}
+			conf.s.SetNAT1To1IPs(ips, ICECandidateTypeHost)
 		}
 		protocol, ports := util.Conf2Listener(conf.Port)
 		if len(ports) == 0 {
@@ -273,12 +280,7 @@ func (conf *WebRTCConfig) Test_Subscribe(w http.ResponseWriter, r *http.Request)
 	w.Write(subscribeHTML)
 }
 
-var webrtcConfig WebRTCConfig
-
-var WebRTCPlugin = engine.InstallPlugin(&webrtcConfig)
-
 func (conf *WebRTCConfig) Batch(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/sdp")
 	bytes, err := io.ReadAll(r.Body)
 	var suber WebRTCBatcher
 	suber.RemoteAddr = r.RemoteAddr
@@ -294,7 +296,8 @@ func (conf *WebRTCConfig) Batch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if sdp, err := suber.GetAnswer(); err == nil {
-		w.Write([]byte(sdp))
+		w.Header().Set("Content-Type", "application/sdp")
+		fmt.Fprintf(w, "%s", sdp)
 	} else {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
