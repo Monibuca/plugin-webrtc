@@ -235,7 +235,7 @@ func (suber *WebRTCSubscriber) OnEvent(event any) {
 						suber.PeerConnection.Close()
 					}()
 				}
-			case PeerConnectionStateDisconnected, PeerConnectionStateFailed:
+			case PeerConnectionStateDisconnected, PeerConnectionStateFailed, PeerConnectionStateClosed:
 				suber.Stop(zap.String("reason", pcs.String()))
 			}
 		})
