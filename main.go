@@ -253,7 +253,7 @@ func (conf *WebRTCConfig) Push_(w http.ResponseWriter, r *http.Request) {
 		switch state {
 		case PeerConnectionStateConnected:
 
-		case PeerConnectionStateDisconnected, PeerConnectionStateFailed:
+		case PeerConnectionStateDisconnected, PeerConnectionStateFailed, PeerConnectionStateClosed:
 			puber.Stop()
 		}
 	})
