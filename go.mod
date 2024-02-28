@@ -7,11 +7,12 @@ require (
 	github.com/pion/rtcp v1.2.12
 	github.com/pion/webrtc/v4 v4.0.0-beta.7
 	go.uber.org/zap v1.26.0
-	m7s.live/engine/v4 v4.13.12
+	m7s.live/engine/v4 v4.15.1
 )
 
 require (
-	github.com/bluenviron/mediacommon v1.0.0 // indirect
+	github.com/bluenviron/gortsplib/v4 v4.6.2 // indirect
+	github.com/bluenviron/mediacommon v1.5.1 // indirect
 	github.com/cnotch/ipchub v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denisbrodbeck/machineid v1.0.1 // indirect
@@ -19,7 +20,7 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
-	github.com/google/uuid v1.3.1 // indirect
+	github.com/google/uuid v1.4.0 // indirect
 	github.com/logrusorgru/aurora/v4 v4.0.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20230326075908-cb1d2100619a // indirect
 	github.com/mcuadros/go-defaults v1.2.0 // indirect
@@ -39,6 +40,7 @@ require (
 	github.com/pion/transport/v3 v3.0.1 // indirect
 	github.com/pion/turn/v3 v3.0.1 // indirect
 	github.com/pion/webrtc/v3 v3.2.20 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/q191201771/naza v0.30.48 // indirect

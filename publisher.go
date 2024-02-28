@@ -8,7 +8,7 @@ import (
 	. "github.com/pion/webrtc/v4"
 	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
-	. "m7s.live/engine/v4/track"
+	"m7s.live/engine/v4/codec"
 )
 
 type WebRTCPublisher struct {
@@ -28,16 +28,16 @@ func (puber *WebRTCPublisher) OnEvent(event any) {
 
 func (puber *WebRTCPublisher) onTrack(track *TrackRemote, receiver *RTPReceiver) {
 	puber.Info("onTrack", zap.String("kind", track.Kind().String()), zap.Uint8("payloadType", uint8(track.Codec().PayloadType)))
-	if codec := track.Codec(); track.Kind() == RTPCodecTypeAudio {
+	if codecP := track.Codec(); track.Kind() == RTPCodecTypeAudio {
 		puber.audioTrack.Store(track)
 		if puber.AudioTrack == nil {
-			switch codec.PayloadType {
+			switch codecP.PayloadType {
 			case 111:
-				puber.AudioTrack = NewOpus(puber.Stream)
+				puber.CreateAudioTrack(codec.CodecID_OPUS)
 			case 8:
-				puber.AudioTrack = NewG711(puber.Stream, true)
+				puber.CreateAudioTrack(codec.CodecID_PCMA)
 			case 0:
-				puber.AudioTrack = NewG711(puber.Stream, false)
+				puber.CreateAudioTrack(codec.CodecID_PCMU)
 			default:
 				puber.AudioTrack = nil
 				puber.Config.PubAudio = false
@@ -61,11 +61,11 @@ func (puber *WebRTCPublisher) onTrack(track *TrackRemote, receiver *RTPReceiver)
 	} else {
 		puber.videoTrack.Store(track)
 		if puber.VideoTrack == nil {
-			switch codec.PayloadType {
+			switch codecP.PayloadType {
 			case 45:
-				puber.VideoTrack = NewAV1(puber.Stream, byte(codec.PayloadType))
+				puber.CreateVideoTrack(codec.CodecID_AV1, byte(codecP.PayloadType))
 			default:
-				puber.VideoTrack = NewH264(puber.Stream, byte(codec.PayloadType))
+				puber.CreateVideoTrack(codec.CodecID_H264, byte(codecP.PayloadType))
 			}
 		}
 		go puber.writeRTCP(track)
