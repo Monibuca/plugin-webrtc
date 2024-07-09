@@ -5,21 +5,21 @@ go 1.19
 require (
 	github.com/pion/interceptor v0.1.25
 	github.com/pion/rtcp v1.2.12
-	github.com/pion/webrtc/v4 v4.0.0-beta.7
+	github.com/pion/webrtc/v3 v3.2.20
 	go.uber.org/zap v1.26.0
-	m7s.live/engine/v4 v4.15.1
+	m7s.live/engine/v4 v4.15.2
 )
 
 require (
 	github.com/bluenviron/gortsplib/v4 v4.6.2 // indirect
 	github.com/bluenviron/mediacommon v1.5.1 // indirect
-	github.com/cnotch/ipchub v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/deepch/vdk v0.0.27 // indirect
 	github.com/denisbrodbeck/machineid v1.0.1 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
+	github.com/google/pprof v0.0.0-20230309165930-d61513b1440d // indirect
 	github.com/google/uuid v1.4.0 // indirect
 	github.com/logrusorgru/aurora/v4 v4.0.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20230326075908-cb1d2100619a // indirect
@@ -27,24 +27,22 @@ require (
 	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
 	github.com/pion/dtls/v2 v2.2.7 // indirect
-	github.com/pion/ice/v3 v3.0.2 // indirect
+	github.com/pion/ice/v2 v2.3.11 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns v0.0.9 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtp v1.8.3 // indirect
 	github.com/pion/sctp v1.8.9 // indirect
 	github.com/pion/sdp/v3 v3.0.6 // indirect
-	github.com/pion/srtp/v3 v3.0.1 // indirect
-	github.com/pion/stun/v2 v2.0.0 // indirect
+	github.com/pion/srtp/v2 v2.0.17 // indirect
+	github.com/pion/stun v0.6.1 // indirect
 	github.com/pion/transport/v2 v2.2.4 // indirect
-	github.com/pion/transport/v3 v3.0.1 // indirect
-	github.com/pion/turn/v3 v3.0.1 // indirect
-	github.com/pion/webrtc/v3 v3.2.20 // indirect
+	github.com/pion/turn/v2 v2.1.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/q191201771/naza v0.30.48 // indirect
-	github.com/quic-go/qtls-go1-20 v0.3.4 // indirect
+	github.com/quic-go/qtls-go1-20 v0.3.3 // indirect
 	github.com/quic-go/quic-go v0.38.1 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.8 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect

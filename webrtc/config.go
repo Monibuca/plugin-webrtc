@@ -1,7 +1,7 @@
 package webrtc
 
 import (
-	. "github.com/pion/webrtc/v4"
+	. "github.com/pion/webrtc/v3"
 )
 
 func RegisterCodecs(m *MediaEngine) error {
@@ -14,7 +14,6 @@ func RegisterCodecs(m *MediaEngine) error {
 			RTPCodecCapability: RTPCodecCapability{MimeTypePCMA, 8000, 0, "", nil},
 			PayloadType:        8,
 		},
-		
 	} {
 		if err := m.RegisterCodec(codec, RTPCodecTypeAudio); err != nil {
 			return err

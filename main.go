@@ -15,7 +15,7 @@ import (
 	_ "embed"
 
 	"github.com/pion/interceptor"
-	. "github.com/pion/webrtc/v4"
+	. "github.com/pion/webrtc/v3"
 	"m7s.live/engine/v4/config"
 	"m7s.live/engine/v4/util"
 	"m7s.live/plugin/webrtc/v4/webrtc"
